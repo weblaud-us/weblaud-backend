@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -10,7 +11,13 @@ export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async create(dto: CreateUserDto) {
-    return this.userModel.create(dto);
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const user = new this.userModel({
+      ...dto,
+      password: hashedPassword,
+    });
+    return user.save();
   }
 
   async findAll(
@@ -34,11 +41,19 @@ export class UsersService {
     return { data, total: count, page, limit };
   }
 
-  async findOne(id: string) {
-    const user = await this.userModel.findById(id).lean();
-    if (!user) throw new NotFoundException('User not found');
+async findOne(id: string) {
+  try {
+    const user = await this.userModel
+      .findById(id)
+      .maxTimeMS(2000) // 2 second timeout
+      .exec();
+    
     return user;
+  } catch (error) {
+    console.error('Error finding user:', error);
+    return null; // Return null instead of throwing to prevent guard failures
   }
+}
 
   async findByEmail(email: string, withPassword = false) {
     const query = this.userModel.findOne({ email });

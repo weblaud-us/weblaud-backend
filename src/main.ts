@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, HttpException, HttpStatus } from '@nestjs/common';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -28,6 +28,18 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
+      exceptionFactory: (errors) => {
+        // Format validation errors to be more readable
+        const formattedErrors = errors.map(error => ({
+          property: error.property,
+          constraints: error.constraints,
+          children: error.children,
+        }));
+        return new HttpException(
+          { message: formattedErrors, error: 'Bad Request' },
+          HttpStatus.BAD_REQUEST,
+        );
+      },
     }),
   );
 
@@ -42,4 +54,5 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}/api/v1`);
 }
+
 bootstrap();

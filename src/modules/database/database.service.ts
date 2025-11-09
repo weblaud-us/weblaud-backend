@@ -6,22 +6,18 @@ import { Connection } from 'mongoose';
 export class DatabaseService implements OnModuleInit {
   private readonly logger = new Logger(DatabaseService.name);
 
-  constructor(
-    @InjectConnection() private readonly connection: Connection,
-  ) {}
+  constructor(@InjectConnection() private readonly connection: Connection) {}
 
   async onModuleInit() {
-    // Log connection status when module initializes
     const state = this.getConnectionState();
     this.logger.log(`📊 Database connection state: ${state}`);
-    
+
     if (this.connection.readyState === 1) {
-      this.logger.log(`✅ Connected to database: ${this.connection.name}`);
-      this.logger.log(`🔗 Host: ${this.connection.host}`);
-      this.logger.log(`📦 Collections: ${Object.keys(this.connection.collections).length}`);
+      this.logger.log(`✅ Connected to: ${this.connection.name} at ${this.connection.host}`);
     }
   }
 
+  // Simple health check without any queries
   health() {
     const state = this.connection.readyState;
     const stateMap = {
@@ -30,14 +26,17 @@ export class DatabaseService implements OnModuleInit {
       2: 'connecting',
       3: 'disconnecting',
     };
+    
+    const stateString = stateMap[state] || 'unknown';
+    const isHealthy = state === 1;
 
     return {
-      status: state === 1 ? 'healthy' : 'unhealthy',
+      status: isHealthy ? 'healthy' : 'unhealthy',
       database: {
-        state: stateMap[state] || 'unknown',
+        state: stateString,
         name: this.connection.name,
         host: this.connection.host,
-        collections: Object.keys(this.connection.collections),
+        readyState: state,
       },
       timestamp: new Date().toISOString(),
     };

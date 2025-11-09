@@ -7,23 +7,38 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
+import { MailService } from 'src/modules/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
+    private mailService: MailService,
     private jwt: JwtService,
   ) {}
 
   async register(dto: RegisterDto) {
-    const user = await this.usersService.create(dto);
+    try {
+      // Check if user with this email already exists
+      const existingUser = await this.usersService.findByEmail(dto.email);
+      if (existingUser) {
+        throw new BadRequestException('Email already in use');
+      }
 
-    const tokens = await this.generateTokens(user._id.toString(), user.role);
+      const user = await this.usersService.create(dto);
+      const tokens = await this.generateTokens(user._id.toString(), user.role);
 
-    const hashedRT = await bcrypt.hash(tokens.refreshToken, 10);
-    await this.usersService.setRefreshToken(user._id.toString(), hashedRT);
+      const hashedRT = await bcrypt.hash(tokens.refreshToken, 10);
+      await this.usersService.setRefreshToken(user._id.toString(), hashedRT);
 
-    return { user: user.toObject(), ...tokens };
+      return { user: user.toObject(), ...tokens };
+    } catch (error) {
+      if (error.code === 11000) {
+        // MongoDB duplicate key error
+        throw new BadRequestException('Email already in use');
+      }
+      throw error;
+    }
   }
 
   async login(dto: LoginDto) {
@@ -60,18 +75,37 @@ export class AuthService {
   }
 
   async sendOtp(email: string) {
+  try {
     const user = await this.usersService.findByEmail(email);
-    if (!user) return { message: 'OTP sent if email exists' };
+    if (!user) {
+      // For security, don't reveal if the email exists or not
+      console.log(`OTP requested for non-existent email: ${email}`);
+      return { message: 'If the email exists, an OTP has been sent' };
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     await this.usersService.saveOtp(email, otp, expires);
 
-    // TODO: add nodemailer logic
-
-    return { message: 'OTP sent if email exists' };
+    try {
+      await this.mailService.sendOtpEmail(email, otp);
+      console.log(`OTP sent successfully to ${email}`);
+      return { message: 'OTP sent successfully' };
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
+      // Consider whether you want to inform the user that email sending failed
+      // or just log it for debugging
+      return { 
+        message: 'Failed to send OTP. Please try again later.',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      };
+    }
+  } catch (error) {
+    console.error('Error in sendOtp:', error);
+    throw new Error('Failed to process OTP request');
   }
+}
 
   async verifyOtp(email: string, otp: string) {
     const user = await this.usersService.verifyOtp(email, otp);

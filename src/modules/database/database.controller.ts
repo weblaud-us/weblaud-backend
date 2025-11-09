@@ -6,10 +6,11 @@ import { Public } from 'src/common/decorators/public.decorator';
 export class DatabaseController {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  @Public()
+
   @Get('health')
-  healthCheck() {
-    return this.databaseService.health();
+  @Public()
+  async healthCheck() {
+    return await this.databaseService.health();
   }
 }
 
