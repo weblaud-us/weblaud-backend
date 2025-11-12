@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -20,9 +20,23 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err, user) {
+  handleRequest(err, user, info) {
     if (err || !user) {
-      throw err || new UnauthorizedException('Invalid or expired token');
+      // Handle different JWT error cases
+      if (info?.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      } else if (info?.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Invalid token');
+      } else if (info?.name === 'NotBeforeError') {
+        throw new UnauthorizedException('Token not yet valid');
+      } else if (info?.message === 'No auth token') {
+        throw new UnauthorizedException('No authentication token provided');
+      } else if (info?.message === 'jwt malformed') {
+        throw new UnauthorizedException('Malformed token');
+      }
+      
+      // Default error message
+      throw new UnauthorizedException('Authentication failed');
     }
 
     return user;

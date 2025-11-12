@@ -6,8 +6,9 @@ import { DatabaseModule } from './database/database.module';
 import { UploadModule } from './upload/upload.module';
 import { MailModule } from './mail/mail.module';
 import { ServicesModule } from './services/services.module';
+import { ProjectModule } from './project/project.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, BookingsModule, DatabaseModule, UploadModule, MailModule, ServicesModule],
+  imports: [AuthModule, UsersModule, BookingsModule, DatabaseModule, UploadModule, MailModule, ServicesModule, ProjectModule],
 })
 export class DomainModule {}
