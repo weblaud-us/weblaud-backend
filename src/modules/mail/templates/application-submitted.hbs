@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; padding: 20px; }
+    .container { background: #ffffff; padding: 20px; border-radius: 8px; }
+    .header { font-size: 22px; font-weight: bold; margin-bottom: 15px; }
+    .info-row { margin: 8px 0; }
+    .label { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">New Job Application Submitted</div>
+
+    <p>Hello HR Team,</p>
+
+    <p>A new candidate has successfully submitted an application for:</p>
+
+    <div class="info-row">
+      <span class="label">Position:</span> {{jobTitle}}
+    </div>
+
+    <div class="info-row">
+      <span class="label">Applicant Name:</span> {{name}}
+    </div>
+
+    <div class="info-row">
+      <span class="label">Email:</span> {{email}}
+    </div>
+
+    <p>You can view the full application in the admin panel.</p>
+
+    <br>
+    <p>Best Regards,</p>
+    <p>Career Portal</p>
+  </div>
+</body>
+</html>
