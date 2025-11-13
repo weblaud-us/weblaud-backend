@@ -44,7 +44,7 @@ export class CareerController {
   @Get(':id')
   get(@Param('id') id: string) {
     return this.service.getCareer(id);
-  } 
+  }
 
   // -------- APPLICATION FLOW --------
   @Post(':id/apply/start')
@@ -61,8 +61,8 @@ export class CareerController {
   @UseInterceptors(FileInterceptor('avatar'))
   step1(
     @Param('id') id: string,
+    @UploadedFile() avatar: Express.Multer.File,
     @Body() dto: Step1Dto,
-    @UploadedFile() avatar?: Express.Multer.File,
   ) {
     return this.service.saveStep1(id, dto, avatar);
   }
