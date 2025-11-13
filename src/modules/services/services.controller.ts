@@ -16,6 +16,7 @@ import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { UploadService } from '../upload/upload.service';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('services')
 export class ServicesController {
@@ -24,19 +25,15 @@ export class ServicesController {
     private readonly uploadService: UploadService,
   ) {}
 
-  /**
-   * Extract URL or path safely
-   */
+  // Extract URL or path safely
   private getFileUrl(result: any): string | undefined {
     if (!result) return undefined;
-    if (result.url) return result.url;   // S3
+    if (result.url) return result.url; // S3
     if (result.path) return result.path; // Local
     return undefined;
   }
 
-  /**
-   * CREATE SERVICE WITH IMAGE
-   */
+  // CREATE SERVICE WITH IMAGE
   @Post()
   @UseInterceptors(FileInterceptor('image'))
   @UsePipes(new ValidationPipe({ whitelist: true }))
@@ -57,25 +54,22 @@ export class ServicesController {
     });
   }
 
-  /**
-   * GET ALL SERVICES
-   */
+  // GET ALL SERVICES
+
+  @Public()
   @Get()
   findAll() {
     return this.servicesService.findAll();
   }
 
-  /**
-   * GET ONE SERVICE
-   */
+  // GET ONE SERVICE
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.servicesService.findOne(id);
   }
 
-  /**
-   * UPDATE SERVICE WITH OPTIONAL NEW IMAGE
-   */
+  // UPDATE SERVICE WITH OPTIONAL NEW IMAGE
   @Put(':id')
   @UseInterceptors(FileInterceptor('image'))
   @UsePipes(new ValidationPipe({ whitelist: true }))
@@ -104,9 +98,7 @@ export class ServicesController {
     });
   }
 
-  /**
-   * DELETE SERVICE + DELETE IMAGE
-   */
+  // DELETE SERVICE + DELETE IMAGE
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const existing = await this.servicesService.findOne(id);
