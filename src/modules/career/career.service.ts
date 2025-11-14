@@ -8,13 +8,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { format } from 'fast-csv';
 import { Model, Types } from 'mongoose';
-
 import { UploadService } from '../upload/upload.service';
 import { MailService } from '../mail/mail.service';
-
 import { Career } from './schemas/career.schema';
 import { Application } from './schemas/application.schema';
-
 import { CreateCareerDto } from './dto/create-career.dto';
 import { Step1Dto } from './dto/step1.dto';
 import { Step2Dto } from './dto/step2.dto';
@@ -31,10 +28,43 @@ export class CareerService {
     private readonly config: ConfigService,
   ) {}
 
+  async handleGoogleApplicant(googleUser: any) {
+  const { email, firstName, lastName, avatar } = googleUser;
+
+  // Check if an unfinished application exists
+  let app = await this.appModel.findOne({ email, submitted: false });
+
+  if (!app) {
+    // Create a blank application if user starts via Google
+    app = await this.appModel.create({
+      email,
+      firstName,
+      lastName,
+      avatarUrl: avatar,
+      currentStep: 1,
+    });
+  } else {
+    // Update Step1 auto-fill fields
+    app.firstName = firstName;
+    app.lastName = lastName;
+    app.avatarUrl = avatar;
+    await app.save();
+  }
+
+  return {
+    message: 'Google login successful',
+    applicationId: app._id,
+    profile: { firstName, lastName, email, avatar },
+  };
+}
+
+
   // ---------- Helper to fix url/path union ----------
   private getFileUrl(upload: any): string {
     return upload.url ?? upload.path ?? '';
   }
+
+
 
   // ---------------------------------------------------
   // JOBS

@@ -41,30 +41,48 @@ export class UsersService {
     return { data, total: count, page, limit };
   }
 
-async findOne(id: string) {
-  try {
-    const user = await this.userModel
-      .findById(id)
-      .maxTimeMS(2000) // 2 second timeout
-      .exec();
-    
-    return user;
-  } catch (error) {
-    console.error('Error finding user:', error);
-    return null; // Return null instead of throwing to prevent guard failures
+  async findOne(id: string) {
+    try {
+      const user = await this.userModel
+        .findById(id)
+        .select('+refreshToken') // Include refreshToken in the result
+        .maxTimeMS(2000) // 2 second timeout
+        .exec();
+
+      return user;
+    } catch (error) {
+      console.error('Error finding user:', error);
+      return null; // Return null instead of throwing to prevent guard failures
+    }
   }
-}
 
   async findByEmail(email: string, withPassword = false) {
     const query = this.userModel.findOne({ email });
-    if (withPassword) query.select('+password');
-    return query;
+    if (withPassword) {
+      query.select('+password +refreshToken');
+    } else {
+      query.select('+refreshToken');
+    }
+    return query.exec();
   }
 
   async setRefreshToken(userId: string, hashedToken: string) {
-    await this.userModel.findByIdAndUpdate(userId, {
-      refreshToken: hashedToken,
-    });
+    try {
+      const result = await this.userModel.findByIdAndUpdate(
+        userId,
+        { refreshToken: hashedToken },
+        { new: true },
+      );
+
+      if (!result) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error setting refresh token:', error);
+      throw new Error('Failed to set refresh token');
+    }
   }
 
   async clearRefreshToken(userId: string) {
@@ -79,6 +97,13 @@ async findOne(id: string) {
     await this.userModel.updateOne({ email }, { otpCode, otpExpires: expires });
   }
 
+  async clearOtp(email: string) {
+    await this.userModel.updateOne(
+      { email },
+      { otpCode: null, otpExpires: null },
+    );
+  }
+
   async verifyOtp(email: string, otp: string) {
     return this.userModel.findOne({
       email,
@@ -88,6 +113,9 @@ async findOne(id: string) {
   }
 
   async update(id: string, dto: UpdateUserDto) {
+    if (dto.password) {
+      dto.password = await bcrypt.hash(dto.password, 10);
+    }
     return this.userModel.findByIdAndUpdate(id, dto, { new: true });
   }
 

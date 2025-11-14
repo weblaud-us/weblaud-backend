@@ -5,8 +5,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { JwtStrategy } from './strategy/jwt.strategy';
 import { MailModule } from '../mail/mail.module';
+import { JwtRefreshStrategy } from './strategy/jwt-refresh.strategy';
+import { TokenService } from './tokens/token.service';
+import { JwtAccessStrategy } from './strategy/jwt-access.strategy';
 
 @Module({
   imports: [
@@ -17,14 +19,16 @@ import { MailModule } from '../mail/mail.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET'),
-        signOptions: { expiresIn: '15m' },
+        secret: config.get<string>('jwt.secret'),
+        signOptions: {
+          expiresIn: config.get<string>('jwt.expiresIn') as any, // Using 'any' as a last resort
+        },
       }),
     }),
   ],
 
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, TokenService, JwtAccessStrategy, JwtRefreshStrategy],
+  exports: [AuthService, TokenService],
 })
 export class AuthModule {}

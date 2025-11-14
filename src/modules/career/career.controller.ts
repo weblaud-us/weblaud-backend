@@ -11,6 +11,7 @@ import {
   BadRequestException,
   UseGuards,
   Res,
+  Req,
 } from '@nestjs/common';
 
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -26,10 +27,29 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Role } from 'src/common/enum/user.role.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('careers')
 export class CareerController {
   constructor(private readonly service: CareerService) {}
+
+   // --- GOOGLE LOGIN START ---
+    @Get('google')
+    @Public()
+    @UseGuards(AuthGuard('google-career'))
+    googleAuth() {
+      return;
+    }
+  
+    @Get('google/callback')
+    @Public()
+    @UseGuards(AuthGuard('google-career'))
+    async googleCallback(@Req() req) {
+      // req.user contains Google profile mapped by strategy
+      return this.service.handleGoogleApplicant(req.user);
+    }
+    // --- GOOGLE LOGIN END ---
+  
 
   // -------- JOBS --------
   @UseGuards(RolesGuard)

@@ -10,6 +10,7 @@ import {
   UseGuards,
   DefaultValuePipe,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -19,10 +20,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from 'src/common/enum/user.role.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { AuthGuard } from '@nestjs/passport';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
+
+   
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)

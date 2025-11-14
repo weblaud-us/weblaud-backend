@@ -8,7 +8,6 @@ import {
 } from 'class-validator';
 import { Role } from 'src/common/enum/user.role.enum';
 
-
 export class CreateUserDto {
   @IsNotEmpty()
   @IsString()

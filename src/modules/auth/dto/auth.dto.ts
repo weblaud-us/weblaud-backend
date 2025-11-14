@@ -28,12 +28,4 @@ export class RegisterDto {
   password: string;
 }
 
-export class ResetPasswordDto {
-  @IsNotEmpty()
-  @IsString()
-  token: string;
 
-  @IsNotEmpty()
-  @MinLength(8)
-  newPassword: string;
-}

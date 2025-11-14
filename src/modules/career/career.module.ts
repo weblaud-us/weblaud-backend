@@ -7,6 +7,8 @@ import { MailModule } from '../mail/mail.module';
 import { ConfigModule } from '@nestjs/config';
 import { CareerController } from 'src/modules/career/career.controller';
 import { CareerService } from 'src/modules/career/career.service';
+import { GoogleStrategy } from '../auth/strategy/google.strategy';
+
 
 @Module({
   imports: [
@@ -19,7 +21,7 @@ import { CareerService } from 'src/modules/career/career.service';
     ]),
   ],
   controllers: [CareerController],
-  providers: [CareerService],
+  providers: [CareerService,GoogleStrategy],
   exports: [CareerService],
 })
 export class CareerModule {}
