@@ -12,7 +12,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ProjectService } from './project.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -34,11 +33,13 @@ export class ProjectController {
   }
 
   @Public()
+  @Public()
   @Get()
   findAll() {
     return this.projectService.findAll();
   }
 
+  @Public()
   @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -49,7 +50,12 @@ export class ProjectController {
   @Roles(Role.ADMIN)
   @Patch(':id')
   @UseInterceptors(AnyFilesInterceptor())
-  update(@Param('id') id: string, @Body() dto: UpdateProjectDto, @UploadedFiles() files, @Req() req) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateProjectDto,
+    @UploadedFiles() files,
+    @Req() req,
+  ) {
     return this.projectService.update(id, dto, req.user.id, files);
   }
 

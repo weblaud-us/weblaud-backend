@@ -66,8 +66,8 @@ export class CareerController {
   @UseInterceptors(FileInterceptor('avatar'))
   step1(
     @Param('id') id: string,
+    @UploadedFile() avatar: Express.Multer.File,
     @Body() dto: Step1Dto,
-    @UploadedFile() avatar?: Express.Multer.File,
   ) {
     return this.service.saveStep1(id, dto, avatar);
   }

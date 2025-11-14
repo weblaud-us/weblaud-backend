@@ -1,9 +1,10 @@
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class Step4Dto {
   @IsString()
   expectedSalary: string;
 
+  @IsOptional()
   @IsString()
-  resumeUrl: string; // auto-set after file upload
+  resumeUrl?: string;
 }

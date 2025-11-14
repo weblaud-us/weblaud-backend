@@ -30,8 +30,10 @@ export class ServicesController {
   ) {}
 
   // Extract URL or path safely
+  // Extract URL or path safely
   private getFileUrl(result: any): string | undefined {
     if (!result) return undefined;
+    if (result.url) return result.url; // S3
     if (result.url) return result.url; // S3
     if (result.path) return result.path; // Local
     return undefined;
@@ -67,6 +69,8 @@ export class ServicesController {
     return this.servicesService.findAll();
   }
 
+  // GET ONE SERVICE
+  @Public()
   // GET ONE SERVICE
   @Public()
   @Get(':id')
