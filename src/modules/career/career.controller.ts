@@ -23,12 +23,17 @@ import { Step2Dto } from './dto/step2.dto';
 import { Step3Dto } from './dto/step3.dto';
 import { Step4Dto } from './dto/step4.dto';
 import { Public } from 'src/common/decorators/public.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Role } from 'src/common/enum/user.role.enum';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('careers')
 export class CareerController {
   constructor(private readonly service: CareerService) {}
 
   // -------- JOBS --------
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Post()
   create(@Body() dto: CreateCareerDto) {
     return this.service.createCareer(dto);
@@ -44,7 +49,7 @@ export class CareerController {
   @Get(':id')
   get(@Param('id') id: string) {
     return this.service.getCareer(id);
-  } 
+  }
 
   // -------- APPLICATION FLOW --------
   @Post(':id/apply/start')
@@ -89,21 +94,23 @@ export class CareerController {
   }
 
   // -------- ADMIN: VIEW APPLICANTS --------
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Get('admin/applicants/export/csv')
-  @UseGuards(JwtAuthGuard)
   async exportCsv(@Query() query: any, @Res() res: Response) {
     const data = await this.service.listApplicantsRaw(query);
     return this.service.exportCsv(data, res);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Get('admin/applicants')
   listApplicants(@Query() query: any) {
     return this.service.listApplicants(query);
   }
-
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Patch('admin/applicants/:id/status')
-  @UseGuards(JwtAuthGuard)
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.service.updateStatus(id, status);
   }

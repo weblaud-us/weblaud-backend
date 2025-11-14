@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '../../../common/decorators/roles.decorator';
+import { Role } from 'src/common/enum/user.role.enum';
+
 
 export type UserDocument = User & Document;
 
@@ -21,8 +22,8 @@ export class User {
   @Prop({ required: true, select: false })
   password: string;
 
-  @Prop({ enum: UserRole, default: UserRole.USER })
-  role: UserRole;
+  @Prop({ enum: Role, default: Role.USER })
+  role: Role;
 
   @Prop({ default: true })
   isActive: boolean;

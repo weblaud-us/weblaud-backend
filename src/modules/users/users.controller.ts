@@ -1,29 +1,40 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param,
-  Query, UseGuards, DefaultValuePipe, ParseIntPipe
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { Roles, UserRole } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { User } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Role } from 'src/common/enum/user.role.enum';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('users')
-@UseGuards(RolesGuard)
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Post()
-  @Roles(UserRole.ADMIN)
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  async create(@Body() dto: CreateUserDto) {
+    return await this.usersService.create(dto);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  findAll(
+  async findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('role') role?: string,
@@ -32,47 +43,32 @@ export class UsersController {
     const isActiveBoolean =
       isActive === 'true' ? true : isActive === 'false' ? false : undefined;
 
-    return this.usersService.findAll(page, limit, role, isActiveBoolean);
+    return await this.usersService.findAll(page, limit, role, isActiveBoolean);
   }
 
   @Get('me')
-  getMe(@GetUser() user: User) {
-    return user;
+  async getMe(@GetUser() user: User) {
+    return await user;
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.MANAGER)
   @Get(':id')
-  findOne(@Param('id') id: string, @GetUser() user: User) {
-    if (
-      user.role !== UserRole.ADMIN &&
-      user.role !== UserRole.MANAGER &&
-      user._id.toString() !== id
-    ) {
-      return user;
-    }
-
-    return this.usersService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    return await this.usersService.findOne(id);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateUserDto,
-    @GetUser() user: User,
-  ) {
-    if (user.role !== UserRole.ADMIN && user._id.toString() !== id) {
-      return { message: 'Unauthorized' };
-    }
-
-    if (user.role !== UserRole.ADMIN && dto.role) {
-      delete dto.role;
-    }
-
-    return this.usersService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return await this.usersService.update(id, dto);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  async remove(@Param('id') id: string) {
+    return await this.usersService.remove(id);
   }
 }
