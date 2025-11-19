@@ -1,5 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ValidationPipe,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express'; // Import this
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -7,14 +14,49 @@ import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
 
-  // Security
-  app.use(helmet());
-  app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    credentials: true,
+  // 1. Pass NestExpressApplication generic to access Express specific methods
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
   });
+
+  const configService = app.get(ConfigService);
+  const environment = configService.get('NODE_ENV', 'development');
+  const port = configService.get('PORT', 3000);
+  const isProduction = environment === 'production';
+
+  // 2. Trust Proxy (CRITICAL for Nginx + Cloudflare)
+  // This tells NestJS to trust the 'X-Forwarded-For' header set by Nginx
+  if (isProduction) {
+    app.set('trust proxy', 1);
+  }
+
+  app.use(helmet());
+
+  // 3. CORS
+  if (!isProduction) {
+    app.enableCors({ origin: true, credentials: true });
+    logger.log('⚠️  Running in Development mode - CORS Open');
+  } else {
+    const allowedOrigins = configService
+      .get<string>('CORS_ORIGINS')
+      ?.split(',')
+      .map((o) => o.trim());
+
+    app.enableCors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins?.includes(origin)) {
+          callback(null, true);
+        } else {
+          logger.warn(`🚫 Blocked CORS request from: ${origin}`);
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true,
+      maxAge: 3600,
+    });
+  }
 
   // Compression
   app.use(compression());
@@ -25,15 +67,13 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
+      transformOptions: { enableImplicitConversion: true },
+      disableErrorMessages: isProduction,
       exceptionFactory: (errors) => {
-        // Format validation errors to be more readable
-        const formattedErrors = errors.map(error => ({
+        const formattedErrors = errors.map((error) => ({
           property: error.property,
           constraints: error.constraints,
-          children: error.children,
+          children: isProduction ? undefined : error.children,
         }));
         return new HttpException(
           { message: formattedErrors, error: 'Bad Request' },
@@ -49,10 +89,10 @@ async function bootstrap() {
 
   // API prefix
   app.setGlobalPrefix('api/v1');
+  app.enableShutdownHooks();
 
-  const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`🚀 Application is running on: http://localhost:${port}/api/v1`);
+  logger.log(`🚀 Application is running on: ${await app.getUrl()}/api/v1`);
 }
 
 bootstrap();
