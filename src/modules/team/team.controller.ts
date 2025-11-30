@@ -18,9 +18,9 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/user.role.enum';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UploadService } from 'src/modules/upload/upload.service';
-import { CreateTeamMemberDto } from 'src/modules/team/dto/create-team.dto';
-import { UpdateTeamMemberDto } from 'src/modules/team/dto/update-team.dto';
+import { CreateTeamMemberDto } from './dto/create-team.dto';
+import { UpdateTeamMemberDto } from './dto/update-team.dto';
+import { UploadService } from '@weblaud/upload-pro';
 
 @Controller('team')
 export class TeamController {
@@ -66,7 +66,7 @@ export class TeamController {
   ) {
     return this.service.update(id, dto, avatar);
   }
-  
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Delete(':id')

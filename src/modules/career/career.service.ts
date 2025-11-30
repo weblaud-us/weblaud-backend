@@ -8,7 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { format } from 'fast-csv';
 import { Model, Types } from 'mongoose';
-import { UploadService } from '../upload/upload.service';
+import { UploadService } from '@weblaud/upload-pro';
 import { MailService } from '../mail/mail.service';
 import { Career } from './schemas/career.schema';
 import { Application } from './schemas/application.schema';
@@ -29,42 +29,39 @@ export class CareerService {
   ) {}
 
   async handleGoogleApplicant(googleUser: any) {
-  const { email, firstName, lastName, avatar } = googleUser;
+    const { email, firstName, lastName, avatar } = googleUser;
 
-  // Check if an unfinished application exists
-  let app = await this.appModel.findOne({ email, submitted: false });
+    // Check if an unfinished application exists
+    let app = await this.appModel.findOne({ email, submitted: false });
 
-  if (!app) {
-    // Create a blank application if user starts via Google
-    app = await this.appModel.create({
-      email,
-      firstName,
-      lastName,
-      avatarUrl: avatar,
-      currentStep: 1,
-    });
-  } else {
-    // Update Step1 auto-fill fields
-    app.firstName = firstName;
-    app.lastName = lastName;
-    app.avatarUrl = avatar;
-    await app.save();
+    if (!app) {
+      // Create a blank application if user starts via Google
+      app = await this.appModel.create({
+        email,
+        firstName,
+        lastName,
+        avatarUrl: avatar,
+        currentStep: 1,
+      });
+    } else {
+      // Update Step1 auto-fill fields
+      app.firstName = firstName;
+      app.lastName = lastName;
+      app.avatarUrl = avatar;
+      await app.save();
+    }
+
+    return {
+      message: 'Google login successful',
+      applicationId: app._id,
+      profile: { firstName, lastName, email, avatar },
+    };
   }
-
-  return {
-    message: 'Google login successful',
-    applicationId: app._id,
-    profile: { firstName, lastName, email, avatar },
-  };
-}
-
 
   // ---------- Helper to fix url/path union ----------
   private getFileUrl(upload: any): string {
     return upload.url ?? upload.path ?? '';
   }
-
-
 
   // ---------------------------------------------------
   // JOBS
@@ -118,7 +115,9 @@ export class CareerService {
     if (!app) throw new NotFoundException('Application not found');
 
     if (avatar) {
-      const upload = await this.uploadService.upload(avatar);
+      const upload = await this.uploadService.upload(avatar, {
+        folder: 'career-avatars',
+      });
       dto.avatarUrl = this.getFileUrl(upload);
     }
 
@@ -160,7 +159,9 @@ export class CareerService {
 
     if (!resume) throw new NotFoundException('Resume upload is required');
 
-    const upload = await this.uploadService.upload(resume);
+    const upload = await this.uploadService.upload(resume, {
+      folder: 'career-resumes',
+    });
     dto.resumeUrl = this.getFileUrl(upload);
 
     Object.assign(app, dto);

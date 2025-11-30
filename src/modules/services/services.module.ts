@@ -3,7 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ServicesController } from './services.controller';
 import { ServicesService } from './services.service';
 import { Service, ServiceSchema } from './schemas/service.schema';
-import { UploadModule } from '../upload/upload.module';
+import { UploadModule } from '@weblaud/upload-pro';
 
 @Module({
   imports: [

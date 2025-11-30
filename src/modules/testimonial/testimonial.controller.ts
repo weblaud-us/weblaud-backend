@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { CreateTestimonialDto } from './dto/create-testimonial.dto';
 import { UpdateTestimonialDto } from './dto/update-testimonial.dto';
-import { TestimonialsService } from 'src/modules/testimonial/testimonial.service';
+import { TestimonialsService } from './testimonial.service';
 import { Public } from 'src/common/decorators/public.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';

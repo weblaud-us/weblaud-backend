@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProjectService } from './project.service';
 import { ProjectController } from './project.controller';
-import { UploadModule } from '../upload/upload.module';
+import { UploadModule } from '@weblaud/upload-pro';
 import { Project, ProjectSchema } from './schema/project.schema';
 
 @Module({

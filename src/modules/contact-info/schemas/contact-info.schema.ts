@@ -12,13 +12,7 @@ export class ContactInfo {
   phone: string;
 
   @Prop({ required: true })
-  addressLine1: string; // e.g. "Dhaka Bangladesh"
-
-  @Prop()
-  addressLine2?: string; // e.g. "Post code: 1207"
-
-  @Prop()
-  city?: string; // e.g. "Dhaka"
+  address: string;  // e.g. "Dhaka Bangladesh"
 }
 
 export const ContactInfoSchema = SchemaFactory.createForClass(ContactInfo);

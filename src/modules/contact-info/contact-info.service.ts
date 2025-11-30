@@ -27,13 +27,9 @@ export class ContactInfoService {
     if (!existing) {
       return this.model.create(dto);
     }
-
     existing.email = dto.email;
     existing.phone = dto.phone;
-    existing.addressLine1 = dto.addressLine1;
-    existing.addressLine2 = dto.addressLine2;
-    existing.city = dto.city;
-
+    existing.address = dto.address;
     return existing.save();
   }
 }

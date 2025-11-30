@@ -10,13 +10,5 @@ export class UpdateContactInfoDto {
 
   @IsString()
   @IsNotEmpty()
-  addressLine1: string;
-
-  @IsOptional()
-  @IsString()
-  addressLine2?: string;
-
-  @IsOptional()
-  @IsString()
-  city?: string;
+  address: string;
 }

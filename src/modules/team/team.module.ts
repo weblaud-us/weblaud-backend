@@ -2,18 +2,15 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TeamController } from './team.controller';
 import { TeamService } from './team.service';
-import {
-  TeamMember,
-  TeamMemberSchema,
-} from './schemas/team-member.schema';
-import { UploadModule } from 'src/modules/upload/upload.module';
+import { TeamMember, TeamMemberSchema } from './schemas/team-member.schema';
+import { UploadModule } from '@weblaud/upload-pro';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: TeamMember.name, schema: TeamMemberSchema },
     ]),
-    UploadModule
+    UploadModule,
   ],
   controllers: [TeamController],
   providers: [TeamService],

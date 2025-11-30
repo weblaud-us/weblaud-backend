@@ -8,7 +8,7 @@ import { Model, Types } from 'mongoose';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectMedia, MediaType } from './types/media.type';
-import { UploadService } from '../upload/upload.service';
+import { UploadService } from '@weblaud/upload-pro';
 import { Project, ProjectDocument } from './schema/project.schema';
 
 @Injectable()

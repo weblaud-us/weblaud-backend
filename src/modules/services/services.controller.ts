@@ -16,7 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import { UploadService } from '../upload/upload.service';
+import { UploadService } from '@weblaud/upload-pro';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/user.role.enum';
 import { RolesGuard } from 'src/common/guards/roles.guard';
