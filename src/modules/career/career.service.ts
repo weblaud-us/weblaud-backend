@@ -13,10 +13,7 @@ import { MailService } from '../mail/mail.service';
 import { Career } from './schemas/career.schema';
 import { Application } from './schemas/application.schema';
 import { CreateCareerDto } from './dto/create-career.dto';
-import { Step1Dto } from './dto/step1.dto';
-import { Step2Dto } from './dto/step2.dto';
-import { Step3Dto } from './dto/step3.dto';
-import { Step4Dto } from './dto/step4.dto';
+import { SubmitApplicationDto } from './dto/submit-application.dto';
 
 @Injectable()
 export class CareerService {
@@ -31,23 +28,21 @@ export class CareerService {
   async handleGoogleApplicant(googleUser: any) {
     const { email, firstName, lastName, avatar } = googleUser;
 
-    // Check if an unfinished application exists
-    let app = await this.appModel.findOne({ email, submitted: false });
+    // Check if an unfinished application exists by email and missing required fields
+    let app = await this.appModel.findOne({ email, phone: { $exists: false } });
 
     if (!app) {
       // Create a blank application if user starts via Google
       app = await this.appModel.create({
         email,
-        firstName,
-        lastName,
-        avatarUrl: avatar,
-        currentStep: 1,
+        name: `${firstName} ${lastName}`,
+        // avatarUrl: avatar, // Removed from schema
+        // currentStep: 1, // Removed from schema
       });
     } else {
       // Update Step1 auto-fill fields
-      app.firstName = firstName;
-      app.lastName = lastName;
-      app.avatarUrl = avatar;
+      app.name = `${firstName} ${lastName}`;
+      // app.avatarUrl = avatar;
       await app.save();
     }
 
@@ -89,90 +84,31 @@ export class CareerService {
   // APPLICATION FLOW
   // ---------------------------------------------------
 
-  async startApplication(careerId: string) {
-    const exists = await this.careerModel.exists({ _id: careerId });
-    if (!exists) throw new NotFoundException('Career not found');
+  // ---------------------------------------------------
+  // APPLICATION FLOW
+  // ---------------------------------------------------
 
-    return this.appModel.create({
-      careerId: new Types.ObjectId(careerId),
-      currentStep: 1,
-    });
-  }
+  async submitApplication(
+    careerId: string,
+    dto: SubmitApplicationDto,
+    resume: Express.Multer.File,
+  ) {
+    const career = await this.careerModel.findById(careerId);
+    if (!career) throw new NotFoundException('Career not found');
 
-  async getApplication(id: string) {
-    const app = await this.appModel
-      .findById(id)
-      .populate('careerId', 'title position')
-      .lean();
-
-    if (!app) throw new NotFoundException('Application not found');
-    return app;
-  }
-
-  // -------------------- STEP 1 --------------------
-  async saveStep1(id: string, dto: Step1Dto, avatar?: Express.Multer.File) {
-    const app = await this.appModel.findById(id);
-    if (!app) throw new NotFoundException('Application not found');
-
-    if (avatar) {
-      const upload = await this.uploadService.upload(avatar, {
-        folder: 'career-avatars',
-      });
-      dto.avatarUrl = this.getFileUrl(upload);
-    }
-
-    Object.assign(app, dto);
-    app.currentStep = 1;
-    await app.save();
-
-    return app;
-  }
-
-  // -------------------- STEP 2 --------------------
-  async saveStep2(id: string, dto: Step2Dto) {
-    const app = await this.appModel.findById(id);
-    if (!app) throw new NotFoundException('Application not found');
-
-    Object.assign(app, dto);
-    app.currentStep = 2;
-
-    await app.save();
-    return app;
-  }
-
-  // -------------------- STEP 3 --------------------
-  async saveStep3(id: string, dto: Step3Dto) {
-    const app = await this.appModel.findById(id);
-    if (!app) throw new NotFoundException('Application not found');
-
-    Object.assign(app, dto);
-    app.currentStep = 3;
-
-    await app.save();
-    return app;
-  }
-
-  // -------------------- STEP 4 (Final) --------------------
-  async saveStep4(id: string, dto: Step4Dto, resume: Express.Multer.File) {
-    const app = await this.appModel.findById(id);
-    if (!app) throw new NotFoundException('Application not found');
-
-    if (!resume) throw new NotFoundException('Resume upload is required');
+    if (!resume) throw new BadRequestException('Resume upload is required');
 
     const upload = await this.uploadService.upload(resume, {
       folder: 'career-resumes',
     });
-    dto.resumeUrl = this.getFileUrl(upload);
+    const resumeUrl = this.getFileUrl(upload);
 
-    Object.assign(app, dto);
-    app.currentStep = 4;
-    app.submitted = true;
-
-    await app.save();
-
-    // Fetch job for email
-    const career = await this.careerModel.findById(app.careerId);
-    if (!career) throw new NotFoundException('Career info missing');
+    const app = await this.appModel.create({
+      careerId: new Types.ObjectId(careerId),
+      ...dto,
+      resumeUrl,
+      status: 'new',
+    });
 
     const hrEmail = this.config.get('mail.hr');
     if (hrEmail) {
@@ -182,12 +118,22 @@ export class CareerService {
         template: 'application-submitted',
         context: {
           jobTitle: career.title,
-          name: `${app.firstName} ${app.lastName}`,
+          name: app.name,
           email: app.email,
         },
       });
     }
 
+    return app;
+  }
+
+  async getApplication(id: string) {
+    const app = await this.appModel
+      .findById(id)
+      .populate('careerId', 'title position')
+      .lean();
+
+    if (!app) throw new NotFoundException('Application not found');
     return app;
   }
 
@@ -203,10 +149,6 @@ export class CareerService {
 
     if (query.careerId) filter.careerId = query.careerId;
     if (query.email) filter.email = new RegExp(query.email, 'i');
-    if (query.submitted !== undefined)
-      filter.submitted = query.submitted === 'true';
-    if (query.step) filter.currentStep = Number(query.step);
-
     if (query.startDate || query.endDate) {
       filter.createdAt = {};
       if (query.startDate) filter.createdAt.$gte = new Date(query.startDate);
@@ -256,9 +198,9 @@ export class CareerService {
 
     if (query.careerId) filter.careerId = query.careerId;
     if (query.email) filter.email = new RegExp(query.email, 'i');
-    if (query.submitted !== undefined)
-      filter.submitted = query.submitted === 'true';
-    if (query.step) filter.currentStep = Number(query.step);
+    // if (query.submitted !== undefined)
+    //   filter.submitted = query.submitted === 'true';
+    // if (query.step) filter.currentStep = Number(query.step);
 
     return this.appModel
       .find(filter)
@@ -276,12 +218,12 @@ export class CareerService {
 
     data.forEach((row) => {
       csv.write({
-        Name: `${row.firstName} ${row.lastName}`,
+        Name: row.name,
         Email: row.email,
         Phone: row.phone,
         Status: row.status,
         Position: row.careerId?.title,
-        Submitted: row.submitted ? 'Yes' : 'No',
+        // Submitted: row.submitted ? 'Yes' : 'No',
         Date: row.createdAt,
       });
     });

@@ -19,10 +19,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import type { Response, Express } from 'express';
 import { CareerService } from './career.service';
 import { CreateCareerDto } from './dto/create-career.dto';
-import { Step1Dto } from './dto/step1.dto';
-import { Step2Dto } from './dto/step2.dto';
-import { Step3Dto } from './dto/step3.dto';
-import { Step4Dto } from './dto/step4.dto';
+import { SubmitApplicationDto } from './dto/submit-application.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Role } from 'src/common/enum/user.role.enum';
@@ -33,23 +30,22 @@ import { AuthGuard } from '@nestjs/passport';
 export class CareerController {
   constructor(private readonly service: CareerService) {}
 
-   // --- GOOGLE LOGIN START ---
-    @Get('google')
-    @Public()
-    @UseGuards(AuthGuard('google-career'))
-    googleAuth() {
-      return;
-    }
-  
-    @Get('google/callback')
-    @Public()
-    @UseGuards(AuthGuard('google-career'))
-    async googleCallback(@Req() req) {
-      // req.user contains Google profile mapped by strategy
-      return this.service.handleGoogleApplicant(req.user);
-    }
-    // --- GOOGLE LOGIN END ---
-  
+  // --- GOOGLE LOGIN START ---
+  @Get('google')
+  @Public()
+  @UseGuards(AuthGuard('google-career'))
+  googleAuth() {
+    return;
+  }
+
+  @Get('google/callback')
+  @Public()
+  @UseGuards(AuthGuard('google-career'))
+  async googleCallback(@Req() req) {
+    // req.user contains Google profile mapped by strategy
+    return this.service.handleGoogleApplicant(req.user);
+  }
+  // --- GOOGLE LOGIN END ---
 
   // -------- JOBS --------
   @UseGuards(RolesGuard)
@@ -72,45 +68,21 @@ export class CareerController {
   }
 
   // -------- APPLICATION FLOW --------
-  @Post(':id/apply/start')
-  start(@Param('id') id: string) {
-    return this.service.startApplication(id);
+  @Public()
+  @Post(':id/apply')
+  @UseInterceptors(FileInterceptor('resume'))
+  apply(
+    @Param('id') id: string,
+    @Body() dto: SubmitApplicationDto,
+    @UploadedFile() resume: Express.Multer.File,
+  ) {
+    if (!resume) throw new BadRequestException('Resume upload is required');
+    return this.service.submitApplication(id, dto, resume);
   }
 
   @Get('applications/:id')
   getApp(@Param('id') id: string) {
     return this.service.getApplication(id);
-  }
-
-  @Patch('applications/:id/step1')
-  @UseInterceptors(FileInterceptor('avatar'))
-  step1(
-    @Param('id') id: string,
-    @UploadedFile() avatar: Express.Multer.File,
-    @Body() dto: Step1Dto,
-  ) {
-    return this.service.saveStep1(id, dto, avatar);
-  }
-
-  @Patch('applications/:id/step2')
-  step2(@Param('id') id: string, @Body() dto: Step2Dto) {
-    return this.service.saveStep2(id, dto);
-  }
-
-  @Patch('applications/:id/step3')
-  step3(@Param('id') id: string, @Body() dto: Step3Dto) {
-    return this.service.saveStep3(id, dto);
-  }
-
-  @Patch('applications/:id/step4')
-  @UseInterceptors(FileInterceptor('resume'))
-  step4(
-    @Param('id') id: string,
-    @Body() dto: Step4Dto,
-    @UploadedFile() resume: Express.Multer.File,
-  ) {
-    if (!resume) throw new BadRequestException('Resume upload is required');
-    return this.service.saveStep4(id, dto, resume);
   }
 
   // -------- ADMIN: VIEW APPLICANTS --------
@@ -135,3 +107,4 @@ export class CareerController {
     return this.service.updateStatus(id, status);
   }
 }
+
