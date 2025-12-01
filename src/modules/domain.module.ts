@@ -13,12 +13,14 @@ import { ContactModule } from './contact/contact.module';
 import { ContactInfoModule } from './contact-info/contact-info.module';
 import { AboutInfoModule } from './about/about.module';
 import { TeamModule } from './team/team.module';
+import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
     AuthModule,
     UsersModule,
     DatabaseModule,
+    SeedModule,
     UploadModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
