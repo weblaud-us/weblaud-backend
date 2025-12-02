@@ -38,7 +38,6 @@ export class ProjectController {
   }
 
   @Public()
-  @Public()
   @Get()
   findAll() {
     return this.projectService.findAll();

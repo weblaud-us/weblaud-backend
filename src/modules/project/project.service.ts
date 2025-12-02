@@ -7,7 +7,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { ProjectMedia, MediaType } from './types/media.type';
 import { UploadService } from '@weblaud/upload-pro';
 import { Project, ProjectDocument } from './schema/project.schema';
 
@@ -27,19 +26,19 @@ export class ProjectService {
       details?: Express.Multer.File[];
     },
   ) {
-    const coverMedia = files.cover?.[0]
-      ? await this.createMedia(userId, files.cover[0])
-      : null;
+    const coverImage = files.cover?.[0]
+      ? await this.uploadFile(files.cover[0])
+      : undefined;
 
-    const detailsMedia = files.details
-      ? await Promise.all(files.details.map((f) => this.createMedia(userId, f)))
+    const detailImages = files.details
+      ? await Promise.all(files.details.map((f) => this.uploadFile(f)))
       : [];
 
     return this.projectModel.create({
       ...dto,
       createdBy: new Types.ObjectId(userId),
-      coverMedia,
-      detailsMedia,
+      coverImage,
+      detailImages,
     });
   }
 
@@ -65,42 +64,34 @@ export class ProjectService {
     const project = await this.findOne(id);
 
     // ---------- COVER ----------
-    let coverMedia = project.coverMedia;
+    let coverImage = project.coverImage;
 
     if (!dto.keepCover) {
-      if (coverMedia) await this.removeMedia(coverMedia);
-      coverMedia = files.cover?.[0]
-        ? await this.createMedia(userId, files.cover[0])
-        : null;
+      if (coverImage) await this.deleteFile(coverImage);
+      coverImage = files.cover?.[0]
+        ? await this.uploadFile(files.cover[0])
+        : '';
     }
 
     // ---------- DETAILS ----------
     const keep = dto.keepDetails ?? [];
+    const remaining = project.detailImages.filter((url) => keep.includes(url));
+    const removed = project.detailImages.filter((url) => !keep.includes(url));
 
-    const remaining = project.detailsMedia.filter((m) => {
-      const match = m.key ?? m.url ?? m.path;
-      return match ? keep.includes(match) : false;
-    });
-
-    const removed = project.detailsMedia.filter((m) => {
-      const match = m.key ?? m.url ?? m.path;
-      return match ? !keep.includes(match) : true;
-    });
-
-    for (const r of removed) {
-      await this.removeMedia(r);
+    for (const url of removed) {
+      await this.deleteFile(url);
     }
 
     const newUploads = files.details
-      ? await Promise.all(files.details.map((f) => this.createMedia(userId, f)))
+      ? await Promise.all(files.details.map((f) => this.uploadFile(f)))
       : [];
 
     return this.projectModel.findByIdAndUpdate(
       id,
       {
         ...dto,
-        coverMedia,
-        detailsMedia: [...remaining, ...newUploads],
+        coverImage,
+        detailImages: [...remaining, ...newUploads],
       },
       { new: true },
     );
@@ -109,10 +100,10 @@ export class ProjectService {
   async delete(id: string) {
     const project = await this.findOne(id);
 
-    if (project.coverMedia) await this.removeMedia(project.coverMedia);
+    if (project.coverImage) await this.deleteFile(project.coverImage);
 
-    for (const media of project.detailsMedia) {
-      await this.removeMedia(media);
+    for (const url of project.detailImages) {
+      await this.deleteFile(url);
     }
 
     await project.deleteOne();
@@ -120,39 +111,30 @@ export class ProjectService {
   }
 
   // ================================
-  //     MEDIA HELPERS (STRONG TYPED)
+  //     FILE HELPERS
   // ================================
 
-  private async createMedia(
-    userId: string,
-    file: Express.Multer.File,
-  ): Promise<ProjectMedia> {
-    const uploaded = await this.uploadService.uploadForUser(
-      userId,
-      file,
-      'images',
-    );
+  private async uploadFile(file: Express.Multer.File): Promise<string> {
+    const uploaded = await this.uploadService.upload(file, {
+      folder: 'projects',
+    });
 
-    const isVideo = file.mimetype.startsWith('video/');
-    const type: MediaType = isVideo ? 'video' : 'image';
-
-    // Determine storage type based on the upload result
-    // S3 uploads have a 'key' field, local uploads have a 'path' field
-    const storage: 'local' | 's3' = 'key' in uploaded ? 's3' : 'local';
-
-    return {
-      storage,
-      url: 'url' in uploaded ? uploaded.url : undefined,
-      key: 'key' in uploaded ? uploaded.key : undefined,
-      path: 'path' in uploaded ? uploaded.path : undefined,
-      type,
-    };
+    // Return the URL (works for both S3 and local)
+    return uploaded.url ?? uploaded.path ?? '';
   }
 
-  private async removeMedia(media: ProjectMedia) {
-    const identifier = media.key ?? media.path;
-    if (!identifier) return;
+  private async deleteFile(urlOrPath: string) {
+    if (!urlOrPath) return;
 
-    await this.uploadService.delete(identifier);
+    // Extract the key/path from the URL for deletion
+    // For S3: extract the key from the URL
+    // For local: it's already the path
+    const identifier = urlOrPath.includes('amazonaws.com')
+      ? urlOrPath.split('.com/')[1] // Extract S3 key from URL
+      : urlOrPath;
+
+    if (identifier) {
+      await this.uploadService.delete(identifier);
+    }
   }
 }

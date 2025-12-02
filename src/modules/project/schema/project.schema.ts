@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { ProjectMedia } from '../types/media.type';
 
 export type ProjectDocument = Project & Document;
 
@@ -15,11 +14,11 @@ export class Project {
   @Prop({ type: [String], default: [] })
   featureList: string[];
 
-  @Prop({ type: Array, default: [] })
-  detailsMedia: ProjectMedia[];
+  @Prop({ type: [String], default: [] })
+  detailImages: string[];
 
-  @Prop({ type: Object, default: null })
-  coverMedia: ProjectMedia | null;
+  @Prop()
+  coverImage: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdBy: Types.ObjectId;
