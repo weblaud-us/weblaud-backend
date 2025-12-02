@@ -26,6 +26,9 @@ async function bootstrap() {
   const port = configService.get('PORT', 3000);
   const isProduction = environment === 'production';
 
+  logger.log(`Environment: ${environment}`);
+  logger.log(`Is Production: ${isProduction}`);
+
   // 2. Trust Proxy (CRITICAL for Nginx + Cloudflare)
   // This tells NestJS to trust the 'X-Forwarded-For' header set by Nginx
   if (isProduction) {
