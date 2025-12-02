@@ -36,8 +36,13 @@ async function bootstrap() {
 
   // 3. CORS
   if (!isProduction) {
-    app.enableCors({ origin: true, credentials: true });
-    logger.log('⚠️  Running in Development mode - CORS Open');
+    app.enableCors({
+      origin: ['http://localhost:5173', 'http://localhost:3000'],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    });
+    logger.log('⚠️  Running in Development mode - CORS enabled for localhost');
   } else {
     const allowedOrigins = configService
       .get<string>('CORS_ORIGINS')
