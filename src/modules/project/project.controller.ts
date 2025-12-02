@@ -11,7 +11,7 @@ import {
   UseInterceptors,
   Req,
 } from '@nestjs/common';
-import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ProjectService } from './project.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -27,7 +27,12 @@ export class ProjectController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
-  @UseInterceptors(AnyFilesInterceptor())
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'cover', maxCount: 1 },
+      { name: 'details', maxCount: 10 },
+    ]),
+  )
   create(@Body() dto: CreateProjectDto, @UploadedFiles() files, @Req() req) {
     return this.projectService.create(dto, req.user.id, files);
   }
@@ -49,7 +54,12 @@ export class ProjectController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id')
-  @UseInterceptors(AnyFilesInterceptor())
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'cover', maxCount: 1 },
+      { name: 'details', maxCount: 10 },
+    ]),
+  )
   update(
     @Param('id') id: string,
     @Body() dto: UpdateProjectDto,
