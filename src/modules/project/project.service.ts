@@ -123,32 +123,31 @@ export class ProjectService {
   //     MEDIA HELPERS (STRONG TYPED)
   // ================================
 
-private async createMedia(
-  userId: string,
-  file: Express.Multer.File,
-): Promise<ProjectMedia> {
-  const uploaded = await this.uploadService.uploadForUser(
-    userId,
-    file,
-    'images',
-  );
+  private async createMedia(
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<ProjectMedia> {
+    const uploaded = await this.uploadService.uploadForUser(
+      userId,
+      file,
+      'images',
+    );
 
-  const isVideo = file.mimetype.startsWith('video/');
-  const type: MediaType = isVideo ? 'video' : 'image';
+    const isVideo = file.mimetype.startsWith('video/');
+    const type: MediaType = isVideo ? 'video' : 'image';
 
-  // TS-safe + runtime-safe narrowing
-  const storage: 'local' | 's3' =
-    uploaded.storage === 's3' ? 's3' : 'local';
+    // Determine storage type based on the upload result
+    // S3 uploads have a 'key' field, local uploads have a 'path' field
+    const storage: 'local' | 's3' = 'key' in uploaded ? 's3' : 'local';
 
-  return {
-    storage,
-    url: 'url' in uploaded ? uploaded.url : undefined,
-    key: 'key' in uploaded ? uploaded.key : undefined,
-    path: 'path' in uploaded ? uploaded.path : undefined,
-    type,
-  };
-}
-
+    return {
+      storage,
+      url: 'url' in uploaded ? uploaded.url : undefined,
+      key: 'key' in uploaded ? uploaded.key : undefined,
+      path: 'path' in uploaded ? uploaded.path : undefined,
+      type,
+    };
+  }
 
   private async removeMedia(media: ProjectMedia) {
     const identifier = media.key ?? media.path;
