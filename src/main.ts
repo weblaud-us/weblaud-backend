@@ -64,7 +64,7 @@ async function bootstrap() {
       preflightContinue: false,
       optionsSuccessStatus: 204,
     });
-    logger.log('⚠️  Running in Development mode - CORS fully enabled');
+    logger.log('Running in Development mode - CORS fully enabled');
   } else {
     // Empty entries are filtered out: ''.split(',') yields [''], which would
     // otherwise read as a configured-but-unmatchable allowlist. validateEnv
