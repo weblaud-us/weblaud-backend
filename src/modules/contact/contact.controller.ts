@@ -13,6 +13,7 @@ import { ContactService } from './contact.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Public } from 'src/common/decorators/public.decorator';
+import { Throttle } from '@nestjs/throttler';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/user.role.enum';
@@ -21,7 +22,10 @@ import { Role } from 'src/common/enum/user.role.enum';
 export class ContactController {
   constructor(private readonly contactService: ContactService) {}
 
+  // Public write that triggers an outbound email per request — tightened well
+  // below the global default so it cannot be used to exhaust the sending quota.
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @Post('submit')
   submit(@Body() dto: CreateContactDto) {
     return this.contactService.submit(dto);

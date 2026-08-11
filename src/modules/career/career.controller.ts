@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import type { Response, Express } from 'express';
 import { CareerService } from './career.service';
@@ -68,7 +69,10 @@ export class CareerController {
   }
 
   // -------- APPLICATION FLOW --------
+  // Public, unauthenticated write that accepts a file upload — tightened well
+  // below the global default. Size and type are enforced by multer.
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @Post(':id/apply')
   @UseInterceptors(FileInterceptor('resume'))
   apply(
@@ -80,6 +84,12 @@ export class CareerController {
     return this.service.submitApplication(id, dto, resume);
   }
 
+  // Admin-only: an application carries the applicant's name, email, phone and
+  // resume URL. Without the role check the global JwtAuthGuard admits any
+  // authenticated principal, which meant any self-registered account could
+  // enumerate every applicant by id.
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Get('applications/:id')
   getApp(@Param('id') id: string) {
     return this.service.getApplication(id);

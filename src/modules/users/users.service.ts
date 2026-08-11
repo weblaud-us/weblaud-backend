@@ -93,23 +93,38 @@ export class UsersService {
     await this.userModel.findByIdAndUpdate(id, { lastLogin: new Date() });
   }
 
-  async saveOtp(email: string, otpCode: string, expires: Date) {
-    await this.userModel.updateOne({ email }, { otpCode, otpExpires: expires });
+  /** `hashedOtp` must already be bcrypt-hashed by the caller. */
+  async saveOtp(email: string, hashedOtp: string, expires: Date) {
+    await this.userModel.updateOne(
+      { email },
+      { otpCode: hashedOtp, otpExpires: expires },
+    );
   }
 
   async clearOtp(email: string) {
     await this.userModel.updateOne(
       { email },
-      { otpCode: null, otpExpires: null },
+      { $unset: { otpCode: 1, otpExpires: 1 } },
     );
   }
 
+  /**
+   * Looks the user up by email and compares the OTP in application code rather
+   * than putting the submitted value into the query. The previous version
+   * matched `{ otpCode: otp }` directly, so a body of `{"otp": {"$gt": ""}}`
+   * matched any stored OTP — the DTO now blocks that shape, and this keeps it
+   * from being a query operator even if it ever got through.
+   */
   async verifyOtp(email: string, otp: string) {
-    return this.userModel.findOne({
-      email,
-      otpCode: otp,
-      otpExpires: { $gt: new Date() },
-    });
+    const user = await this.userModel
+      .findOne({ email })
+      .select('+otpCode +otpExpires');
+
+    if (!user?.otpCode || !user.otpExpires) return null;
+    if (user.otpExpires.getTime() <= Date.now()) return null;
+
+    const matches = await bcrypt.compare(otp, user.otpCode);
+    return matches ? user : null;
   }
 
   async update(id: string, dto: UpdateUserDto) {

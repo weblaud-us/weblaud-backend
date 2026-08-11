@@ -25,15 +25,34 @@ export class MailService {
     });
   }
 
-  private compileTemplate(templateName: string, context: any) {
-    const templatePath = path.join(
-      process.cwd(),
-      'src/modules/mail/templates',
-      `${templateName}.hbs`,
-    );
+  private readonly templateCache = new Map<string, hbs.TemplateDelegate>();
 
-    const templateFile = fs.readFileSync(templatePath, 'utf-8');
-    const template = hbs.compile(templateFile);
+  /**
+   * Templates are resolved relative to this file, not process.cwd(). They are
+   * copied into dist/ by the `assets` entry in nest-cli.json, so this works
+   * identically whether we're running compiled output or ts-jest — and no
+   * longer depends on the deploy happening to ship the src/ tree alongside it.
+   */
+  private compileTemplate(templateName: string, context: any) {
+    let template = this.templateCache.get(templateName);
+
+    if (!template) {
+      const templatePath = path.join(
+        __dirname,
+        'templates',
+        `${templateName}.hbs`,
+      );
+
+      if (!fs.existsSync(templatePath)) {
+        throw new Error(
+          `Email template "${templateName}" not found at ${templatePath}. ` +
+            'Check the "assets" entry in nest-cli.json.',
+        );
+      }
+
+      template = hbs.compile(fs.readFileSync(templatePath, 'utf-8'));
+      this.templateCache.set(templateName, template);
+    }
 
     return template(context);
   }

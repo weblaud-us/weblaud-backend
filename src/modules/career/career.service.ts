@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   InternalServerErrorException,
   BadRequestException,
@@ -14,9 +15,12 @@ import { Career } from './schemas/career.schema';
 import { Application } from './schemas/application.schema';
 import { CreateCareerDto } from './dto/create-career.dto';
 import { SubmitApplicationDto } from './dto/submit-application.dto';
+import { sanitizeCsvRow } from 'src/common/utils/csv.util';
 
 @Injectable()
 export class CareerService {
+  private readonly logger = new Logger(CareerService.name);
+
   constructor(
     @InjectModel(Career.name) private careerModel: Model<Career>,
     @InjectModel(Application.name) private appModel: Model<Application>,
@@ -110,10 +114,13 @@ export class CareerService {
       status: 'new',
     });
 
-    const hrEmail = this.config.get('mail.hr');
-    if (hrEmail) {
+    // mail.hr falls back to mail.admin, which validateEnv requires — so this is
+    // always set. It used to read an undefined config key and silently skip.
+    const hrEmail = this.config.get<string>('mail.hr');
+
+    try {
       await this.mailService.sendEmail({
-        to: hrEmail,
+        to: hrEmail!,
         subject: `New Application – ${career.title}`,
         template: 'application-submitted',
         context: {
@@ -122,6 +129,11 @@ export class CareerService {
           email: app.email,
         },
       });
+    } catch (err) {
+      this.logger.error(
+        `Application ${String(app._id)} saved but notification email failed`,
+        err instanceof Error ? err.stack : String(err),
+      );
     }
 
     return app;
@@ -216,16 +228,19 @@ export class CareerService {
     const csv = format({ headers: true });
     csv.pipe(res);
 
+    // Every field here except Status originates from an unauthenticated public
+    // submission, and the export is opened in a spreadsheet by an admin.
     data.forEach((row) => {
-      csv.write({
-        Name: row.name,
-        Email: row.email,
-        Phone: row.phone,
-        Status: row.status,
-        Position: row.careerId?.title,
-        // Submitted: row.submitted ? 'Yes' : 'No',
-        Date: row.createdAt,
-      });
+      csv.write(
+        sanitizeCsvRow({
+          Name: row.name,
+          Email: row.email,
+          Phone: row.phone,
+          Status: row.status,
+          Position: row.careerId?.title,
+          Date: row.createdAt,
+        }),
+      );
     });
 
     csv.end();

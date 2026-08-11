@@ -11,8 +11,10 @@ export const envConfig = () => ({
       process.env.FILE_ALLOWED_TYPES || 'jpg,jpeg,png,webp,pdf,mp4,mov',
   },
 
+  // No fallback: validateEnv guarantees this is set, and a silent localhost
+  // default would let production come up connected to nothing.
   mongodb: {
-    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/agency_db',
+    uri: process.env.MONGODB_URI,
   },
 
   mail: {
@@ -21,6 +23,10 @@ export const envConfig = () => ({
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
     from: process.env.MAIL_FROM || 'noreply@weblaud.com',
+    /** Where contact submissions and project estimates are announced. */
+    admin: process.env.MAIL_ADMIN,
+    /** Where job applications are announced. Falls back to the admin inbox. */
+    hr: process.env.MAIL_HR || process.env.MAIL_ADMIN,
   },
 
   jwt: {
@@ -28,10 +34,6 @@ export const envConfig = () => ({
     expiresIn: process.env.JWT_EXPIRES_IN,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
-  },
-
-  cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   },
 
   throttle: {
