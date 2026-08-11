@@ -14,6 +14,10 @@ import { ContactInfoModule } from './contact-info/contact-info.module';
 import { AboutInfoModule } from './about/about.module';
 import { TeamModule } from './team/team.module';
 import { SeedModule } from './seed/seed.module';
+import { InsightModule } from './insights/insight.module';
+import { CalculatorConfigModule } from './calculator-config/calculator-config.module';
+import { EstimatesModule } from './estimates/estimates.module';
+import { FaqModule } from './faq/faq.module';
 
 @Module({
   imports: [
@@ -24,20 +28,33 @@ import { SeedModule } from './seed/seed.module';
     UploadModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        driver: config.get('FILE_STORAGE') === 's3' ? 's3' : 'local',
-        maxSize: config.get('FILE_MAX_SIZE') || '10mb',
-        allowedTypes: config.get('FILE_ALLOWED_TYPES')?.split(','),
-        localConfig: {
-          destination: config.get('LOCAL_UPLOAD_PATH') || './uploads',
-        },
-        s3Config: {
-          accessKeyId: config.get('AWS_ACCESS_KEY_ID') || '',
-          secretAccessKey: config.get('AWS_SECRET_ACCESS_KEY') || '',
-          region: config.get('AWS_REGION') || '',
-          bucket: config.get('AWS_S3_BUCKET') || '',
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const fileStorage = config.get('FILE_STORAGE');
+        const driver =
+          fileStorage === 's3' || fileStorage === 'cloudinary'
+            ? fileStorage
+            : 'local';
+
+        return {
+          driver,
+          maxSize: config.get('FILE_MAX_SIZE') || '10mb',
+          allowedTypes: config.get('FILE_ALLOWED_TYPES')?.split(','),
+          localConfig: {
+            destination: config.get('LOCAL_UPLOAD_PATH') || './uploads',
+          },
+          s3Config: {
+            accessKeyId: config.get('AWS_ACCESS_KEY_ID') || '',
+            secretAccessKey: config.get('AWS_SECRET_ACCESS_KEY') || '',
+            region: config.get('AWS_REGION') || '',
+            bucket: config.get('AWS_S3_BUCKET') || '',
+          },
+          cloudinaryConfig: {
+            cloudName: config.get('CLOUDINARY_CLOUD_NAME') || '',
+            apiKey: config.get('CLOUDINARY_API_KEY') || '',
+            apiSecret: config.get('CLOUDINARY_API_SECRET') || '',
+          },
+        };
+      },
     }),
     MailModule,
     ServicesModule,
@@ -48,6 +65,10 @@ import { SeedModule } from './seed/seed.module';
     ContactInfoModule,
     AboutInfoModule,
     TeamModule,
+    InsightModule,
+    CalculatorConfigModule,
+    EstimatesModule,
+    FaqModule,
   ],
 })
 export class DomainModule {}

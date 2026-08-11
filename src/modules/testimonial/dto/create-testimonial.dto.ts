@@ -7,8 +7,9 @@ export class CreateTestimonialDto {
   @IsString()
   authorName: string;
 
+  @IsOptional()
   @IsString()
-  authorTitle: string;
+  authorTitle?: string;
 
   @IsOptional()
   @IsBoolean()

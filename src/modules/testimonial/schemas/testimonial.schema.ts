@@ -11,7 +11,7 @@ export class Testimonial {
   @Prop({ required: true })
   authorName: string; // John Doe
 
-  @Prop({ required: true })
+  @Prop({ default: '' })
   authorTitle: string; // Founder & CEO
 
   @Prop({ default: true })

@@ -64,16 +64,21 @@ async function bootstrap() {
       preflightContinue: false,
       optionsSuccessStatus: 204,
     });
-    logger.log('⚠️  Running in Development mode - CORS fully enabled');
+    logger.log('Running in Development mode - CORS fully enabled');
   } else {
-    const allowedOrigins = configService
-      .get<string>('CORS_ORIGINS')
-      ?.split(',')
-      .map((o) => o.trim());
+    // Empty entries are filtered out: ''.split(',') yields [''], which would
+    // otherwise read as a configured-but-unmatchable allowlist. validateEnv
+    // guarantees this is non-empty in production.
+    const allowedOrigins = (configService.get<string>('CORS_ORIGINS') ?? '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+
+    logger.log(`CORS allowlist: ${allowedOrigins.join(', ')}`);
 
     app.enableCors({
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins?.includes(origin)) {
+        if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
           logger.warn(`🚫 Blocked CORS request from: ${origin}`);
@@ -111,7 +116,7 @@ async function bootstrap() {
   );
 
   // Global filters and interceptors
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new HttpExceptionFilter(isProduction));
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   // API prefix

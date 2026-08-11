@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class LoginDto {
   @IsNotEmpty()
@@ -10,22 +10,6 @@ export class LoginDto {
   password: string;
 }
 
-export class RegisterDto {
-  @IsNotEmpty()
-  @IsString()
-  firstName: string;
-
-  @IsNotEmpty()
-  @IsString()
-  lastName: string;
-
-  @IsNotEmpty()
-  @IsEmail()
-  email: string;
-
-  @IsNotEmpty()
-  @MinLength(8)
-  password: string;
-}
-
-
+// RegisterDto intentionally removed alongside the public register route — see
+// the comment on AuthController. Admin accounts are created through
+// POST /users (admin-gated) or the first-boot seed.

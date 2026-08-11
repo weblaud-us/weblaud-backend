@@ -61,12 +61,15 @@ export class TeamService {
   async findPublic() {
     return this.teamModel
       .find({ isActive: true })
-      .sort({ createdAt: -1 })
+      .sort({ order: 1, createdAt: -1 })
       .lean();
   }
 
   async findAdmin() {
-    return this.teamModel.find().sort({ createdAt: -1 }).lean();
+    return this.teamModel
+      .find()
+      .sort({ order: 1, createdAt: -1 })
+      .lean();
   }
 
   async findById(id: string) {

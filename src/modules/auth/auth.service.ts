@@ -4,11 +4,18 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { randomInt } from 'crypto';
 import { UsersService } from '../users/users.service';
 import { MailService } from 'src/modules/mail/mail.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { LoginDto } from './dto/auth.dto';
 import { TokenService } from './tokens/token.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+
+/** Returned for every send-otp call so the response cannot be used to test whether an account exists. */
+const OTP_SENT_MESSAGE =
+  'If an account exists for that email, an OTP has been sent';
+
+const OTP_TTL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -17,25 +24,6 @@ export class AuthService {
     private mail: MailService,
     private tokens: TokenService,
   ) {}
-
-  // REGISTER
-  async register(dto: RegisterDto) {
-    const exists = await this.users.findByEmail(dto.email);
-    if (exists) throw new BadRequestException('Email already in use');
-
-    const user = await this.users.create(dto);
-    const tokenData = await this.tokens.signTokens(
-      user._id.toString(),
-      user.role,
-    );
-
-    await this.users.setRefreshToken(
-      user._id.toString(),
-      await bcrypt.hash(tokenData.refreshToken, 10),
-    );
-
-    return { user, ...tokenData };
-  }
 
   // LOGIN
   async login(dto: LoginDto) {
@@ -102,15 +90,22 @@ export class AuthService {
   // SEND OTP
   async sendOtp(email: string) {
     const user = await this.users.findByEmail(email);
-    if (!user) return { message: 'If email exists, OTP sent' };
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    // Same response either way — a distinct "OTP sent" for known addresses
+    // turned this endpoint into an account-enumeration oracle.
+    if (!user) return { message: OTP_SENT_MESSAGE };
 
-    await this.users.saveOtp(email, otp, expires);
+    // randomInt is CSPRNG-backed. Math.random() is not, and its output is
+    // recoverable from a handful of observed values — which for a password
+    // reset code means account takeover.
+    const otp = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const expires = new Date(Date.now() + OTP_TTL_MS);
+
+    // Stored hashed: a database read should not yield a usable reset code.
+    await this.users.saveOtp(email, await bcrypt.hash(otp, 10), expires);
     await this.mail.sendOtpEmail(email, otp);
 
-    return { message: 'OTP sent' };
+    return { message: OTP_SENT_MESSAGE };
   }
 
   // VERIFY OTP
@@ -123,14 +118,21 @@ export class AuthService {
 
   // RESET PASSWORD
   async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.users.verifyOtp(dto.email, dto.token);
-
+    const user = await this.users.verifyOtp(dto.email, dto.otp);
     if (!user) throw new BadRequestException('Invalid or expired OTP');
 
-    const hashed = await bcrypt.hash(dto.newPassword, 10);
+    // Pass the plaintext: users.update() hashes it. Hashing here as well
+    // stored bcrypt(bcrypt(password)), which no login could ever match — the
+    // reset appeared to succeed and locked the account out permanently.
+    await this.users.update(user._id.toString(), {
+      password: dto.newPassword,
+    });
 
-    await this.users.update(user._id, { password: hashed });
     await this.users.clearOtp(user.email);
+
+    // A password change must end existing sessions, otherwise a stolen refresh
+    // token survives the reset that was meant to revoke it.
+    await this.users.clearRefreshToken(user._id.toString());
 
     return { message: 'Password updated successfully' };
   }

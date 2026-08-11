@@ -9,6 +9,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { UploadService } from '@weblaud/upload-pro';
 import { Project, ProjectDocument } from './schema/project.schema';
+import { slugify } from 'src/common/utils/slugify.util';
 
 @Injectable()
 export class ProjectService {
@@ -17,6 +18,27 @@ export class ProjectService {
     private readonly projectModel: Model<ProjectDocument>,
     private readonly uploadService: UploadService,
   ) {}
+
+  private async generateUniqueSlug(
+    source: string,
+    excludeId?: string,
+  ): Promise<string> {
+    const base = slugify(source);
+    let candidate = base;
+    let suffix = 2;
+
+    while (
+      await this.projectModel.exists({
+        slug: candidate,
+        ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+      })
+    ) {
+      candidate = `${base}-${suffix}`;
+      suffix += 1;
+    }
+
+    return candidate;
+  }
 
   async create(
     dto: CreateProjectDto,
@@ -34,8 +56,11 @@ export class ProjectService {
       ? await Promise.all(files.details.map((f) => this.uploadFile(f)))
       : [];
 
+    const slug = await this.generateUniqueSlug(dto.slug ?? dto.name);
+
     return this.projectModel.create({
       ...dto,
+      slug,
       createdBy: new Types.ObjectId(userId),
       coverImage,
       detailImages,
@@ -48,6 +73,12 @@ export class ProjectService {
 
   async findOne(id: string) {
     const project = await this.projectModel.findById(id);
+    if (!project) throw new NotFoundException('Project not found');
+    return project;
+  }
+
+  async findBySlug(slug: string) {
+    const project = await this.projectModel.findOne({ slug }).lean();
     if (!project) throw new NotFoundException('Project not found');
     return project;
   }
@@ -86,10 +117,15 @@ export class ProjectService {
       ? await Promise.all(files.details.map((f) => this.uploadFile(f)))
       : [];
 
+    const slug = dto.slug
+      ? await this.generateUniqueSlug(dto.slug, id)
+      : undefined;
+
     return this.projectModel.findByIdAndUpdate(
       id,
       {
         ...dto,
+        ...(slug ? { slug } : {}),
         coverImage,
         detailImages: [...remaining, ...newUploads],
       },

@@ -26,6 +26,9 @@ export class TeamMember {
 
   @Prop({ default: true })
   isActive: boolean;
+
+  @Prop({ default: 0 })
+  order: number;
 }
 
 export const TeamMemberSchema = SchemaFactory.createForClass(TeamMember);

@@ -14,6 +14,15 @@ import { isArray } from 'class-validator';
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
+  /**
+   * @param isProduction When true, 5xx responses carry a fixed message instead
+   * of the exception's own. Anything that is not an HttpException — Mongo
+   * driver errors, Cloudinary SDK failures, filesystem paths — used to have its
+   * raw `.message` echoed straight to the caller. `disableErrorMessages` on the
+   * ValidationPipe only ever covered validation output, not this path.
+   */
+  constructor(private readonly isProduction = false) {}
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -55,6 +64,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       `${request.method} ${request.url} ${status}`,
       exception instanceof Error ? exception.stack : JSON.stringify(exception),
     );
+
+    // The full detail is already in the log line above; the client gets none of
+    // it. Client errors (4xx) keep their message — those are actionable and
+    // describe the caller's own request, not our internals.
+    if (this.isProduction && status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      message = 'Internal server error';
+      error = 'Internal Server Error';
+    }
 
     // Build response
     const responseBody: any = {

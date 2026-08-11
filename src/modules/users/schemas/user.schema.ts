@@ -32,11 +32,13 @@ export class User {
   @Prop({ select: false })
   refreshToken?: string;
 
-  // OTP code for reset
-  @Prop()
+  // Bcrypt hash of the password-reset OTP, never the code itself. select:false
+  // keeps both out of every user response by default — they were previously
+  // returned by GET /users/me and any other endpoint echoing a user document.
+  @Prop({ select: false })
   otpCode?: string;
 
-  @Prop()
+  @Prop({ select: false })
   otpExpires?: Date;
 
   comparePassword: (password: string) => Promise<boolean>;

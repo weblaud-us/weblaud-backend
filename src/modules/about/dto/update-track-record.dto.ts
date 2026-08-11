@@ -1,4 +1,4 @@
-import { IsArray, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class TrackRecordItem {
@@ -7,6 +7,10 @@ class TrackRecordItem {
 
   @IsString()
   subtitle: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
 }
 
 export class UpdateTrackRecordDto {

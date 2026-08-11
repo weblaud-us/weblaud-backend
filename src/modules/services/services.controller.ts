@@ -9,8 +9,6 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ServicesService } from './services.service';
@@ -30,21 +28,21 @@ export class ServicesController {
   ) {}
 
   // Extract URL or path safely
-  // Extract URL or path safely
   private getFileUrl(result: any): string | undefined {
     if (!result) return undefined;
-    if (result.url) return result.url; // S3
     if (result.url) return result.url; // S3
     if (result.path) return result.path; // Local
     return undefined;
   }
 
   // CREATE SERVICE WITH IMAGE
+  // No @UsePipes here on purpose: a handler-level pipe replaces the global one
+  // from main.ts wholesale, which dropped `transform` and the multipart
+  // coercions the DTO relies on.
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
   @UseInterceptors(FileInterceptor('image'))
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateServiceDto,
@@ -71,8 +69,6 @@ export class ServicesController {
 
   // GET ONE SERVICE
   @Public()
-  // GET ONE SERVICE
-  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.servicesService.findOne(id);
@@ -83,7 +79,6 @@ export class ServicesController {
   @Roles(Role.ADMIN)
   @Put(':id')
   @UseInterceptors(FileInterceptor('image'))
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateServiceDto,
