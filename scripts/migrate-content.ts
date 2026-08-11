@@ -70,6 +70,34 @@ async function uploadAsset(
   }
 }
 
+/**
+ * Same as uploadAsset, but pulls the source image from a remote URL first.
+ * Used for the stock cover photos (Pexels) that have no local file in
+ * weblaud-site/app/assets — the bytes still land in our own storage, so the
+ * published site never hotlinks the stock CDN.
+ */
+async function uploadRemoteAsset(
+  uploadService: UploadService,
+  url: string,
+  filename: string,
+  folder: string,
+): Promise<string> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`GET ${url} responded ${res.status} ${res.statusText}`);
+    }
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const mimetype = res.headers.get('content-type')?.split(';')[0] ?? 'image/jpeg';
+    const file = { buffer, originalname: filename, mimetype } as unknown as Express.Multer.File;
+    const uploaded = await uploadService.upload(file, { folder });
+    return uploaded.url ?? uploaded.path ?? '';
+  } catch (err) {
+    logger.error(`Failed to upload remote asset "${url}" (folder: ${folder})`, err as Error);
+    return '';
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Literal content, transcribed verbatim from:
 //   weblaud-site/app/data/{services,projects}.ts
@@ -151,7 +179,23 @@ const SERVICES_SEED = [
   },
 ];
 
-const PROJECTS_SEED = [
+interface ProjectSeed {
+  slug: string;
+  name: string;
+  description: string;
+  features: string[];
+  /** Local file under ASSET_SOURCE_DIR. */
+  imageAsset?: string;
+  /** Remote stock photo, fetched then re-uploaded to our own storage. */
+  imageUrl?: string;
+  imageAlt: string;
+  problem: string;
+  solution: string;
+  techStack: string[];
+  businessImpact: string;
+}
+
+const PROJECTS_SEED: ProjectSeed[] = [
   {
     slug: 'enterprise-operations-erp-platform',
     name: 'Enterprise Operations & ERP Platform',
@@ -271,6 +315,126 @@ const PROJECTS_SEED = [
     techStack: ['Node.js', 'React', 'Python', 'PostgreSQL', 'AWS'],
     businessImpact:
       'Shipped the delayed roadmap 10 weeks ahead of the original in-house hiring timeline, directly supporting the company\'s next funding round, with zero net increase to permanent headcount.',
+  },
+
+  // -------------------------------------------------------------------------
+  // Second wave of case studies — one per service line, written for search and
+  // answer/generative engines: each `description` is a self-contained direct
+  // answer (what was built, for whom, with the headline number), `features` are
+  // keyword-shaped noun phrases, and `businessImpact` is a quotable
+  // before/after stat, since these fields are what /projects/:slug renders into
+  // its TechArticle JSON-LD and what /llms-full.txt exposes for RAG retrieval.
+  // Cover photos are free Pexels stock, re-uploaded to our own storage.
+  // -------------------------------------------------------------------------
+  {
+    slug: 'multi-warehouse-inventory-logistics-erp',
+    name: 'Multi-Warehouse Inventory & Logistics ERP',
+    description:
+      'A custom warehouse management and logistics ERP that replaced nightly spreadsheet stock counts with real-time inventory, barcode scanning, and automated purchase orders across a distributor’s four distribution centers.',
+    features: [
+      'Real-time multi-warehouse inventory with barcode & QR scanning',
+      'Automated reorder points, purchase orders & supplier workflows',
+      'Delivery dispatch board with driver routing & proof-of-delivery',
+    ],
+    // https://www.pexels.com/photo/4481259/ — warehouse operations
+    imageUrl:
+      'https://images.pexels.com/photos/4481259/pexels-photo-4481259.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'Multi-Warehouse Inventory & Logistics ERP for distribution centers',
+    problem:
+      'A regional distributor tracked stock across four distribution centers in spreadsheets that were only reconciled overnight, so the sales team routinely sold inventory that had already shipped, purchasing had no reliable reorder signal, and slow-moving stock sat undetected for months.',
+    solution:
+      'We built a single warehouse management platform with live inventory synced from handheld barcode scanners at every put-away, pick, and transfer, automated reorder points that generate supplier purchase orders without manual review, and a dispatch board that assigns deliveries to drivers and captures proof-of-delivery in the field.',
+    techStack: ['React', 'Node.js', 'PostgreSQL', 'Redis', 'Docker', 'AWS'],
+    businessImpact:
+      'Cut stock-count discrepancies by 92%, eliminated oversold orders entirely across all four warehouses, and reduced average pick-and-pack time by 40% in the first quarter after rollout.',
+  },
+  {
+    slug: 'programmatic-seo-aeo-content-platform',
+    name: 'Programmatic SEO & AEO Content Platform',
+    description:
+      'A server-rendered content platform that grew a B2B marketplace from 120 to 4,800 indexed pages in 90 days, with automated schema.org structured data and llms.txt endpoints that make its pages citable by AI answer engines.',
+    features: [
+      'Server-side rendering & edge caching to a sub-1s LCP budget',
+      'Automated JSON-LD structured data (FAQPage, HowTo, BreadcrumbList)',
+      'AEO answer blocks plus llms.txt & llms-full.txt for AI citation',
+    ],
+    // https://www.pexels.com/photo/6476589/ — organic growth analytics
+    imageUrl:
+      'https://images.pexels.com/photos/6476589/pexels-photo-6476589.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'Programmatic SEO and AEO content platform organic traffic dashboard',
+    problem:
+      'A B2B marketplace served its entire catalog from a client-side React SPA, so crawlers received an empty HTML shell, pages took over 4 seconds to render on mobile, no structured data existed on any template, and the brand was never surfaced by ChatGPT, Perplexity, or Google AI Overviews for the category terms it competed on.',
+    solution:
+      'We rebuilt the front end on a server-rendered stack backed by a headless CMS, added a templating layer that generates category, location, and comparison pages directly from structured catalog data, and attached JSON-LD to every template automatically. For answer and generative engines we added a direct-answer summary block and FAQ section to each page type, plus llms.txt and llms-full.txt endpoints that publish a clean, retrieval-ready version of the whole catalog and knowledge base.',
+    techStack: ['React', 'Next.js', 'Node.js', 'PostgreSQL', 'Cloudflare CDN', 'Schema.org JSON-LD'],
+    businessImpact:
+      'Grew indexed pages from 120 to 4,800 in 90 days, lifted non-brand organic sessions 212% within two quarters, cut mobile LCP from 4.1s to 0.9s, and earned the brand recurring citations in AI answer engines for its core category queries.',
+  },
+  {
+    slug: 'fintech-wallet-kyc-mobile-app',
+    name: 'Fintech Wallet & KYC Mobile App',
+    description:
+      'A cross-platform Flutter wallet app with automated KYC identity verification and a double-entry ledger backend, cutting a remittance startup’s customer onboarding from three days to under eight minutes.',
+    features: [
+      'Single Flutter codebase for iOS & Android with biometric login',
+      'Automated KYC/AML verification with document & liveness checks',
+      'Double-entry ledger backend with instant transfers & card payouts',
+    ],
+    // https://www.pexels.com/photo/7621136/ — contactless payment
+    imageUrl:
+      'https://images.pexels.com/photos/7621136/pexels-photo-7621136.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'Fintech wallet and KYC mobile app for digital payments',
+    problem:
+      'A cross-border remittance startup onboarded every customer by hand — identity documents arrived by email, a compliance officer reviewed them within three business days, and balances were tracked in a spreadsheet that had to be reconciled against the payment processor each morning. There was no mobile app at all, and the manual process could not survive the volume the company had already signed up for.',
+    solution:
+      'We shipped a single Flutter codebase for iOS and Android with biometric login, wired identity verification into an automated KYC/AML provider that runs document and liveness checks in-session and escalates only ambiguous cases to a compliance queue, and replaced the spreadsheet with a double-entry ledger service that records every transfer, fee, and payout as immutable balanced entries.',
+    techStack: ['Flutter', 'Node.js', 'PostgreSQL', 'Redis', 'Stripe', 'AWS KMS'],
+    businessImpact:
+      'Reduced onboarding from three business days to under eight minutes for 87% of applicants, supported 30,000 funded wallets in the first six months with no added compliance headcount, and closed every month with zero ledger reconciliation breaks.',
+  },
+  {
+    slug: 'ai-document-intelligence-claims-processing',
+    name: 'AI Document Intelligence for Claims Processing',
+    description:
+      'A production document intelligence pipeline that reads insurance claim PDFs and scans with OCR and an LLM, auto-processing 71% of claims end to end and cutting average handling time from 22 minutes to 3.',
+    features: [
+      'OCR + LLM extraction of 40+ structured fields from PDFs and scans',
+      'Field-level confidence scoring with a human review queue',
+      'Evaluation harness over 5,000 labeled claims tracking accuracy & drift',
+    ],
+    // https://www.pexels.com/photo/4792285/ — claim document filing
+    imageUrl:
+      'https://images.pexels.com/photos/4792285/pexels-photo-4792285.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'AI document intelligence pipeline for insurance claims processing',
+    problem:
+      'A third-party insurance administrator received claims as PDFs, faxes, and phone-camera photos, and adjusters keyed more than 40 fields per claim into the policy system by hand. At 22 minutes per claim the team could not keep pace with intake, and a multi-week backlog was pushing the administrator past its contractual turnaround times.',
+    solution:
+      'We built a pipeline that runs every inbound document through OCR, extracts the structured claim fields with an LLM, and attaches a confidence score to each individual field. Claims where every field clears the threshold post straight to the policy system, while anything uncertain routes to a human review queue with the low-confidence fields highlighted against the source page. A separate evaluation harness replays 5,000 labeled historical claims on each model or prompt change so per-field accuracy and drift are measured before anything reaches production.',
+    techStack: ['Python', 'FastAPI', 'Claude API', 'AWS Textract', 'PostgreSQL', 'Redis'],
+    businessImpact:
+      'Cut average claim handling time from 22 minutes to 3, auto-processed 71% of claims with no human touch at 98.4% field-level accuracy on the evaluation set, and cleared the entire backlog within 5 weeks of go-live.',
+  },
+  {
+    slug: 'realtime-auction-live-bidding-platform',
+    name: 'Real-Time Auction & Live Bidding Platform',
+    description:
+      'A WebSocket bidding engine for an online auction house that replaced 5-second polling with sub-100ms bid updates and held 25,000 concurrent bidders on closing nights without downtime.',
+    features: [
+      'WebSocket bidding engine with sub-100ms price fan-out',
+      'Atomic bid ordering & anti-snipe automatic lot extension',
+      'Live video streams with a synchronized real-time bid overlay',
+    ],
+    // https://www.pexels.com/photo/7567443/ — live market data screens
+    imageUrl:
+      'https://images.pexels.com/photos/7567443/pexels-photo-7567443.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'Real-time auction and live bidding platform with live price updates',
+    problem:
+      'An online auction house ran its bidding on a 5-second polling loop, so bidders regularly submitted against a stale price and lost lots they believed they had won. Every closing night produced disputes the support team had to settle by hand, and the platform buckled under the concurrency spike in the final minutes of each auction.',
+    solution:
+      'We replaced polling with an event-driven bidding engine that sequences every bid atomically in Redis before fanning the new price out over WebSockets to all connected bidders, added anti-snipe rules that automatically extend a lot when a bid lands in its closing seconds, and layered a synchronized bid overlay onto the live video stream. The whole stack was load-tested to 25,000 concurrent bidders before launch and scales horizontally behind the auction schedule.',
+    techStack: ['Node.js', 'WebSocket', 'Redis', 'PostgreSQL', 'Docker', 'AWS'],
+    businessImpact:
+      'Brought bid update latency from 5 seconds to under 100ms, eliminated disputed bid-order tickets entirely in the first six months post-launch, and sustained 25,000 concurrent bidders through closing nights with zero downtime.',
   },
 ];
 
@@ -531,9 +695,12 @@ async function seedProjects(model: Model<any>, uploadService: UploadService) {
   let count = 0;
   for (const p of PROJECTS_SEED) {
     const existing = await model.findOne({ slug: p.slug });
-    const coverImage = existing?.coverImage
-      ? existing.coverImage
-      : await uploadAsset(uploadService, p.imageAsset, 'projects');
+    let coverImage = existing?.coverImage ?? '';
+    if (!coverImage) {
+      coverImage = p.imageUrl
+        ? await uploadRemoteAsset(uploadService, p.imageUrl, `${p.slug}.jpg`, 'projects')
+        : await uploadAsset(uploadService, p.imageAsset!, 'projects');
+    }
 
     await model.findOneAndUpdate(
       { slug: p.slug },
@@ -690,8 +857,48 @@ async function seedInsights(model: Model<any>, teamDocs: any[]) {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * `--only=projects,insights` runs just those steps. Useful when adding content
+ * to one collection without re-running the singleton steps (about,
+ * contact-info, calculator-config), which overwrite unconditionally and would
+ * revert any edits made through the admin CMS. Omit the flag to run everything.
+ */
+const ALL_STEPS = [
+  'services',
+  'projects',
+  'team',
+  'testimonials',
+  'faqs',
+  'about',
+  'contact-info',
+  'calculator-config',
+  'insights',
+] as const;
+type Step = (typeof ALL_STEPS)[number];
+
+function requestedSteps(): Set<Step> {
+  const flag = process.argv.find((a) => a.startsWith('--only='));
+  if (!flag) return new Set(ALL_STEPS);
+
+  const names = flag
+    .slice('--only='.length)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const unknown = names.filter((n) => !ALL_STEPS.includes(n as Step));
+  if (unknown.length) {
+    throw new Error(
+      `Unknown --only step(s): ${unknown.join(', ')}. Valid steps: ${ALL_STEPS.join(', ')}`,
+    );
+  }
+  return new Set(names as Step[]);
+}
+
 async function bootstrap() {
+  const steps = requestedSteps();
   const app = await NestFactory.createApplicationContext(AppModule);
+  logger.log(`Running steps: ${[...steps].join(', ')}`);
 
   try {
     const uploadService = app.get(UploadService);
@@ -708,15 +915,26 @@ async function bootstrap() {
     );
     const faqModel = app.get<Model<any>>(getModelToken(Faq.name));
 
-    await seedServices(serviceModel, uploadService);
-    await seedProjects(projectModel, uploadService);
-    const teamDocs = await seedTeam(teamModel, uploadService);
-    await seedTestimonials(testimonialModel);
-    await seedFaqs(faqModel);
-    await seedAbout(aboutModel);
-    await seedContactInfo(contactInfoModel);
-    await seedCalculatorConfig(calculatorConfigModel);
-    await seedInsights(insightModel, teamDocs);
+    if (steps.has('services')) await seedServices(serviceModel, uploadService);
+    if (steps.has('projects')) await seedProjects(projectModel, uploadService);
+
+    // seedInsights needs the team docs for author avatars, so read them even
+    // when the team step itself is not part of this run.
+    let teamDocs: any[] = [];
+    if (steps.has('team')) {
+      teamDocs = await seedTeam(teamModel, uploadService);
+    } else if (steps.has('insights')) {
+      teamDocs = await teamModel.find().lean();
+    }
+
+    if (steps.has('testimonials')) await seedTestimonials(testimonialModel);
+    if (steps.has('faqs')) await seedFaqs(faqModel);
+    if (steps.has('about')) await seedAbout(aboutModel);
+    if (steps.has('contact-info')) await seedContactInfo(contactInfoModel);
+    if (steps.has('calculator-config')) {
+      await seedCalculatorConfig(calculatorConfigModel);
+    }
+    if (steps.has('insights')) await seedInsights(insightModel, teamDocs);
 
     logger.log('Migration complete.');
   } finally {

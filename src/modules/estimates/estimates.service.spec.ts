@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
+import { ConfigService } from '@nestjs/config';
 import { BadRequestException } from '@nestjs/common';
 import { EstimatesService } from './estimates.service';
 import { Estimate } from './schemas/estimate.schema';
@@ -32,6 +33,7 @@ describe('EstimatesService', () => {
   let model: { create: jest.Mock; find: jest.Mock; countDocuments: jest.Mock; findByIdAndUpdate: jest.Mock; findByIdAndDelete: jest.Mock };
   let mail: { sendEmail: jest.Mock };
   let config: { getPublic: jest.Mock };
+  let appConfig: { get: jest.Mock };
 
   beforeEach(async () => {
     model = {
@@ -43,6 +45,7 @@ describe('EstimatesService', () => {
     };
     mail = { sendEmail: jest.fn().mockResolvedValue(undefined) };
     config = { getPublic: jest.fn().mockResolvedValue(CONFIG) };
+    appConfig = { get: jest.fn().mockReturnValue('admin@example.com') };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -50,6 +53,7 @@ describe('EstimatesService', () => {
         { provide: getModelToken(Estimate.name), useValue: model },
         { provide: MailService, useValue: mail },
         { provide: CalculatorConfigService, useValue: config },
+        { provide: ConfigService, useValue: appConfig },
       ],
     }).compile();
 

@@ -1,11 +1,49 @@
-# compiled output
-/dist
-/node_modules
-/build
-/uploads
+# ---------------------------------------------------------------------------
+# What belongs in this repo: everything scripts/deploy.sh needs to BUILD on the
+# server — src/, package.json, pnpm-lock.yaml, pnpm-workspace.yaml,
+# nest-cli.json, tsconfig*.json, ecosystem.config.js, scripts/.
+#
+# So "not needed to run in production" is NOT the test for ignoring something.
+# src/ and test/ are not shipped, but the server compiles from source, and tests
+# are part of the codebase — both stay tracked.
+#
+# What gets ignored is only: build output the server regenerates, dependencies
+# the server installs, local tooling, and anything secret.
+# ---------------------------------------------------------------------------
+
+# --- Build output (deploy.sh regenerates all of it) ---
+# Unanchored so nested copies are covered too: the pnpm workspace links
+# ../upload-pro and materializes packages/upload-pro/, which a root-anchored
+# /dist and /node_modules silently missed.
+dist/
+build/
+node_modules/
 *.tsbuildinfo
 
-# Logs
+# --- Secrets ---
+# Broad glob, then re-admit the template. The narrow list this replaces named
+# only exact filenames, which is how ".env copy" — carrying a live Atlas URI,
+# both JWT secrets and a Gmail app password — was committed and pushed. Any
+# variant (.env.production, ".env copy 2", .env.bak) is now caught by default.
+.env*
+!.env.example
+
+# Keys and certificates should never be in git regardless of extension.
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+
+# --- User-uploaded files ---
+# LOCAL_UPLOAD_PATH defaults to public/uploads, so with FILE_STORAGE=local this
+# is where uploads land — including job-applicant CVs submitted through the
+# public POST /careers/:id/apply endpoint. Root-anchored /uploads did not match
+# it. Personal data must not reach the repo.
+/uploads
+public/uploads/
+
+# --- Logs (PM2 writes ./logs per ecosystem.config.js) ---
 logs
 *.log
 npm-debug.log*
@@ -14,14 +52,20 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# OS
-.DS_Store
-
-# Tests
+# --- Tests / coverage output ---
 /coverage
 /.nyc_output
 
-# IDEs and editors
+# --- Local agent & assistant tooling (developer-machine only) ---
+.agent/
+.claude/
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDEs and editors ---
 /.idea
 .project
 .classpath
@@ -37,22 +81,15 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# temp directory
+# --- Temp directories ---
 .temp
 .tmp
 
-# Runtime data
+# --- Runtime data ---
 pids
 *.pid
 *.seed
 *.pid.lock
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
+# --- Diagnostic reports (https://nodejs.org/api/report.html) ---
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json

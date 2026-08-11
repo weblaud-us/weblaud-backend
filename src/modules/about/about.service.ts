@@ -19,9 +19,17 @@ export class AboutInfoService {
     return record;
   }
 
+  /**
+   * `isActive` defaults to false and nothing can set it: the dashboard's About
+   * page only posts story/mission, stats and track-record intents, and no
+   * route ever accepted the flag. Gating on it meant everything an admin typed
+   * here was saved and then never shown on /aboutus. The section components
+   * already render nothing for empty copy (`OurMissionAndStory` returns null
+   * without a story or mission, `OurTrack` without any entries), so publishing
+   * the record as-is is what the dashboard has always implied.
+   */
   async getPublic() {
-    const data = await this.model.findOne().lean();
-    return data?.isActive ? data : null;
+    return this.model.findOne().lean();
   }
 
   async getAdmin() {
