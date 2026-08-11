@@ -125,6 +125,19 @@ export function validateEnv(config: Env): Env {
     }
   }
 
+  // --- Admin dashboard deep links ---
+  // Only enforced in production, mirroring CORS_ORIGINS above: on a dev machine
+  // an unset value simply drops the "View in dashboard" button from notification
+  // email, which beats hard-failing boot over a cosmetic link.
+  const adminBaseUrl = isProduction
+    ? requireValue(config, 'ADMIN_BASE_URL', errors)
+    : str(config, 'ADMIN_BASE_URL');
+  if (adminBaseUrl && !/^https?:\/\/[^/\s]+(\/[^\s]*)?$/.test(adminBaseUrl)) {
+    errors.add(
+      `ADMIN_BASE_URL must be an absolute http(s) URL (got "${adminBaseUrl}")`,
+    );
+  }
+
   // --- Mail ---
   requireValue(config, 'MAIL_HOST', errors);
   requireValue(config, 'MAIL_USER', errors);

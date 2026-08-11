@@ -1,15 +1,13 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import { Estimate, EstimateDocument } from './schemas/estimate.schema';
 import { CreateEstimateDto } from './dto/create-estimate.dto';
-import { MailService } from '../mail/mail.service';
+import { DashboardNotifierService } from '../mail/dashboard-notifier.service';
 import { CalculatorConfigService } from '../calculator-config/calculator-config.service';
 import { estimateProject } from './estimate.util';
 
@@ -17,14 +15,11 @@ const money = (n: number) => `$${n.toLocaleString('en-US')}`;
 
 @Injectable()
 export class EstimatesService {
-  private readonly logger = new Logger(EstimatesService.name);
-
   constructor(
     @InjectModel(Estimate.name)
     private readonly estimateModel: Model<EstimateDocument>,
     private readonly calculatorConfigService: CalculatorConfigService,
-    private readonly mailService: MailService,
-    private readonly config: ConfigService,
+    private readonly dashboardNotifier: DashboardNotifierService,
   ) {}
 
   async submit(dto: CreateEstimateDto) {
@@ -40,7 +35,9 @@ export class EstimatesService {
       (p) => p.id === dto.projectTypeId,
     );
     if (!projectType) {
-      throw new BadRequestException(`Unknown project type: ${dto.projectTypeId}`);
+      throw new BadRequestException(
+        `Unknown project type: ${dto.projectTypeId}`,
+      );
     }
 
     const speed = config.timelineSpeeds.find((s) => s.id === dto.speedId);
@@ -82,33 +79,46 @@ export class EstimatesService {
       },
     });
 
-    // A failed notification must not lose the lead — it is already persisted.
-    try {
-      await this.mailService.sendEmail({
-        to: this.config.get<string>('mail.admin')!,
-        subject: `New Project Estimate — ${projectType.title}`,
-        template: 'estimate',
-        context: {
-          name: dto.name,
-          email: dto.email,
-          company: dto.company,
-          phone: dto.phone,
-          notes: dto.notes,
-          projectType: projectType.title,
-          features: computed.features.map((f) => f.title),
-          speed: speed.label,
-          totalWeeks: computed.totalWeeks,
-          costMin: money(computed.costMin),
-          costMax: money(computed.costMax),
-          date: new Date().toUTCString(),
+    // notifyNew never rejects — the lead is already persisted and a mail outage
+    // must not surface as a 500 to the visitor.
+    await this.dashboardNotifier.notifyNew({
+      kind: 'project estimate',
+      heading: `New project estimate — ${projectType.title}`,
+      rows: [
+        { label: 'Name', value: dto.name },
+        { label: 'Email', value: dto.email, href: `mailto:${dto.email}` },
+        { label: 'Company', value: dto.company },
+        {
+          label: 'Phone',
+          value: dto.phone,
+          href: dto.phone ? `tel:${dto.phone}` : undefined,
         },
-      });
-    } catch (err) {
-      this.logger.error(
-        `Estimate ${saved._id as string} saved but notification email failed`,
-        err instanceof Error ? err.stack : String(err),
-      );
-    }
+        { section: 'Scope', label: 'Project type', value: projectType.title },
+        { section: 'Scope', label: 'Delivery pace', value: speed.label },
+        {
+          section: 'Scope',
+          label: 'Capabilities',
+          // Falls back to explicit copy rather than dropping the row, so the
+          // reader can tell "chose nothing" from "field is missing".
+          value: computed.features.length
+            ? computed.features.map((f) => f.title)
+            : 'None selected',
+        },
+        {
+          section: 'Estimate',
+          label: 'Timeline',
+          value: `${computed.totalWeeks} sprint weeks`,
+        },
+        {
+          section: 'Estimate',
+          label: 'Investment range',
+          value: `${money(computed.costMin)} – ${money(computed.costMax)}`,
+        },
+        { section: 'Notes', label: 'Notes', value: dto.notes },
+      ],
+      dashboardPath: '/estimate-submissions',
+      recordId: String(saved._id),
+    });
 
     return saved;
   }

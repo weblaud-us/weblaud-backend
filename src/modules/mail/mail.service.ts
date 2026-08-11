@@ -13,16 +13,10 @@ export class MailService {
     @Inject('MAIL_TRANSPORTER') private transporter: Transporter,
     private config: ConfigService,
   ) {
+    // No verify() here: MailModule's transporter factory already does it once.
+    // Doing it again opened a second SMTP connection on every boot, and Gmail
+    // rate-limits connection attempts.
     this.logger.log('MailService initialized');
-    
-    // Log transporter events
-    this.transporter.verify((error) => {
-      if (error) {
-        this.logger.error('Error verifying mail transporter:', error);
-      } else {
-        this.logger.log('Mail transporter is ready to take our messages');
-      }
-    });
   }
 
   private readonly templateCache = new Map<string, hbs.TemplateDelegate>();

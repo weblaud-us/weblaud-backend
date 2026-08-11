@@ -1,47 +1,38 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import { Contact, ContactDocument } from './schemas/contact.schema';
 import { CreateContactDto } from './dto/create-contact.dto';
-import { MailService } from '../mail/mail.service';
+import { DashboardNotifierService } from '../mail/dashboard-notifier.service';
 
 @Injectable()
 export class ContactService {
-  private readonly logger = new Logger(ContactService.name);
-
   constructor(
     @InjectModel(Contact.name)
     private readonly contactModel: Model<ContactDocument>,
-    private readonly mailService: MailService,
-    private readonly config: ConfigService,
+    private readonly dashboardNotifier: DashboardNotifierService,
   ) {}
 
   async submit(dto: CreateContactDto) {
     const saved = await this.contactModel.create(dto);
 
-    // A failed notification must not lose the lead — it is already persisted.
-    // Previously this was awaited bare, so a mail outage returned a 500 to the
-    // visitor for a submission that had in fact been saved.
-    try {
-      await this.mailService.sendEmail({
-        to: this.config.get<string>('mail.admin')!,
-        subject: 'New Contact Message',
-        template: 'contact',
-        context: {
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          email: dto.email,
-          phone: dto.phone,
-          message: dto.message,
+    // notifyNew never rejects, so a mail outage cannot turn an already-persisted
+    // lead into a 500 for the visitor.
+    await this.dashboardNotifier.notifyNew({
+      kind: 'contact message',
+      rows: [
+        { label: 'Name', value: `${dto.firstName} ${dto.lastName}`.trim() },
+        { label: 'Email', value: dto.email, href: `mailto:${dto.email}` },
+        {
+          label: 'Phone',
+          value: dto.phone,
+          href: dto.phone ? `tel:${dto.phone}` : undefined,
         },
-      });
-    } catch (err) {
-      this.logger.error(
-        `Contact message ${saved._id as string} saved but notification email failed`,
-        err instanceof Error ? err.stack : String(err),
-      );
-    }
+        { label: 'Message', value: dto.message },
+      ],
+      dashboardPath: '/contact-submissions',
+      recordId: String(saved._id),
+    });
 
     return saved;
   }

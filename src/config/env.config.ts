@@ -29,6 +29,19 @@ export const envConfig = () => ({
     hr: process.env.MAIL_HR || process.env.MAIL_ADMIN,
   },
 
+  admin: {
+    /**
+     * Origin *plus* admin path prefix of the dashboard, e.g.
+     * https://weblaud.com/cpadmin. Leaf routes (/contact-submissions,
+     * /applicants, …) are appended by DashboardNotifierService, so moving the
+     * panel to a different path needs no code change. Trailing slash optional.
+     *
+     * No fallback: a plausible-looking default would ship dead "View in
+     * dashboard" links in real notification email.
+     */
+    baseUrl: process.env.ADMIN_BASE_URL,
+  },
+
   jwt: {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,

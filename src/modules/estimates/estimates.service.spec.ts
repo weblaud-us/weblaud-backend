@@ -1,10 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { ConfigService } from '@nestjs/config';
 import { BadRequestException } from '@nestjs/common';
 import { EstimatesService } from './estimates.service';
 import { Estimate } from './schemas/estimate.schema';
-import { MailService } from '../mail/mail.service';
+import { DashboardNotifierService } from '../mail/dashboard-notifier.service';
 import { CalculatorConfigService } from '../calculator-config/calculator-config.service';
 
 const CONFIG = {
@@ -30,10 +29,22 @@ const VALID_DTO = {
 
 describe('EstimatesService', () => {
   let service: EstimatesService;
-  let model: { create: jest.Mock; find: jest.Mock; countDocuments: jest.Mock; findByIdAndUpdate: jest.Mock; findByIdAndDelete: jest.Mock };
-  let mail: { sendEmail: jest.Mock };
+  let model: {
+    create: jest.Mock;
+    find: jest.Mock;
+    countDocuments: jest.Mock;
+    findByIdAndUpdate: jest.Mock;
+    findByIdAndDelete: jest.Mock;
+  };
+  let notifier: { notifyNew: jest.Mock };
   let config: { getPublic: jest.Mock };
-  let appConfig: { get: jest.Mock };
+
+  /** Flattens the grouped sections back to rows for easier assertions. */
+  const notifiedRows = () =>
+    notifier.notifyNew.mock.calls[0][0].rows as {
+      label: string;
+      value: unknown;
+    }[];
 
   beforeEach(async () => {
     model = {
@@ -43,17 +54,15 @@ describe('EstimatesService', () => {
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
     };
-    mail = { sendEmail: jest.fn().mockResolvedValue(undefined) };
+    notifier = { notifyNew: jest.fn().mockResolvedValue(undefined) };
     config = { getPublic: jest.fn().mockResolvedValue(CONFIG) };
-    appConfig = { get: jest.fn().mockReturnValue('admin@example.com') };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EstimatesService,
         { provide: getModelToken(Estimate.name), useValue: model },
-        { provide: MailService, useValue: mail },
+        { provide: DashboardNotifierService, useValue: notifier },
         { provide: CalculatorConfigService, useValue: config },
-        { provide: ConfigService, useValue: appConfig },
       ],
     }).compile();
 
@@ -69,7 +78,11 @@ describe('EstimatesService', () => {
 
     const saved = model.create.mock.calls[0][0];
     // 4500 * 1.0 * 1.1 = 4950 -> 5000; 5000 * 1.28 = 6400 -> 6500
-    expect(saved.result).toEqual({ totalWeeks: 7, costMin: 5000, costMax: 6500 });
+    expect(saved.result).toEqual({
+      totalWeeks: 7,
+      costMin: 5000,
+      costMax: 6500,
+    });
     expect(saved.selection.projectTypeTitle).toBe('Operations');
     expect(saved.selection.featureTitles).toEqual(['Auth']);
     expect(saved.selection.speedLabel).toBe('Standard');
@@ -83,26 +96,52 @@ describe('EstimatesService', () => {
     expect(saved.result.totalWeeks).toBe(7);
   });
 
-  it('emails the admin a notification', async () => {
+  it('notifies the dashboard with the priced estimate', async () => {
     await service.submit(VALID_DTO);
 
-    expect(mail.sendEmail).toHaveBeenCalledWith(
+    expect(notifier.notifyNew).toHaveBeenCalledWith(
       expect.objectContaining({
-        template: 'estimate',
-        context: expect.objectContaining({
-          costMin: '$5,000',
-          costMax: '$6,500',
-          features: ['Auth'],
-        }),
+        kind: 'project estimate',
+        dashboardPath: '/estimate-submissions',
+        recordId: 'abc',
       }),
+    );
+    expect(notifiedRows()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Investment range',
+          value: '$5,000 – $6,500',
+        }),
+        expect.objectContaining({ label: 'Capabilities', value: ['Auth'] }),
+        expect.objectContaining({ label: 'Timeline', value: '7 sprint weeks' }),
+      ]),
     );
   });
 
-  it('still returns the saved lead when the notification email fails', async () => {
-    mail.sendEmail.mockRejectedValue(new Error('smtp down'));
+  it('says "None selected" rather than dropping an empty capability list', async () => {
+    await service.submit({ ...VALID_DTO, featureIds: [] });
 
-    await expect(service.submit(VALID_DTO)).resolves.toBeDefined();
+    expect(notifiedRows()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Capabilities',
+          value: 'None selected',
+        }),
+      ]),
+    );
+  });
+
+  // The lead must be durable before we attempt to notify. The "a mail outage
+  // never loses a lead" half of that guarantee now lives in
+  // DashboardNotifierService, which owns the try/catch and never rejects —
+  // see dashboard-notifier.service.spec.ts.
+  it('persists the lead before attempting to notify', async () => {
+    await service.submit(VALID_DTO);
+
     expect(model.create).toHaveBeenCalled();
+    expect(model.create.mock.invocationCallOrder[0]).toBeLessThan(
+      notifier.notifyNew.mock.invocationCallOrder[0],
+    );
   });
 
   it.each([
@@ -124,6 +163,8 @@ describe('EstimatesService', () => {
       timelineSpeeds: [],
     });
 
-    await expect(service.submit(VALID_DTO)).rejects.toThrow(BadRequestException);
+    await expect(service.submit(VALID_DTO)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });

@@ -6,7 +6,6 @@ import { MailModule } from '../mail/mail.module';
 import { ConfigModule } from '@nestjs/config';
 import { CareerController } from './career.controller';
 import { CareerService } from './career.service';
-import { GoogleStrategy } from '../auth/strategy/google.strategy';
 
 @Module({
   imports: [
@@ -18,7 +17,7 @@ import { GoogleStrategy } from '../auth/strategy/google.strategy';
     ]),
   ],
   controllers: [CareerController],
-  providers: [CareerService, GoogleStrategy],
+  providers: [CareerService],
   exports: [CareerService],
 })
 export class CareerModule {}

@@ -1,6 +1,5 @@
 import {
   Injectable,
-  Logger,
   NotFoundException,
   InternalServerErrorException,
   BadRequestException,
@@ -10,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { format } from 'fast-csv';
 import { Model, Types } from 'mongoose';
 import { UploadService } from '@weblaud/upload-pro';
-import { MailService } from '../mail/mail.service';
+import { DashboardNotifierService } from '../mail/dashboard-notifier.service';
 import { Career } from './schemas/career.schema';
 import { Application } from './schemas/application.schema';
 import { CreateCareerDto } from './dto/create-career.dto';
@@ -21,43 +20,13 @@ import { slugify } from 'src/common/utils/slugify.util';
 
 @Injectable()
 export class CareerService {
-  private readonly logger = new Logger(CareerService.name);
-
   constructor(
     @InjectModel(Career.name) private careerModel: Model<Career>,
     @InjectModel(Application.name) private appModel: Model<Application>,
     private readonly uploadService: UploadService,
-    private readonly mailService: MailService,
+    private readonly dashboardNotifier: DashboardNotifierService,
     private readonly config: ConfigService,
   ) {}
-
-  async handleGoogleApplicant(googleUser: any) {
-    const { email, firstName, lastName, avatar } = googleUser;
-
-    // Check if an unfinished application exists by email and missing required fields
-    let app = await this.appModel.findOne({ email, phone: { $exists: false } });
-
-    if (!app) {
-      // Create a blank application if user starts via Google
-      app = await this.appModel.create({
-        email,
-        name: `${firstName} ${lastName}`,
-        // avatarUrl: avatar, // Removed from schema
-        // currentStep: 1, // Removed from schema
-      });
-    } else {
-      // Update Step1 auto-fill fields
-      app.name = `${firstName} ${lastName}`;
-      // app.avatarUrl = avatar;
-      await app.save();
-    }
-
-    return {
-      message: 'Google login successful',
-      applicationId: app._id,
-      profile: { firstName, lastName, email, avatar },
-    };
-  }
 
   // ---------- Helper to fix url/path union ----------
   private getFileUrl(upload: any): string {
@@ -174,10 +143,6 @@ export class CareerService {
   // APPLICATION FLOW
   // ---------------------------------------------------
 
-  // ---------------------------------------------------
-  // APPLICATION FLOW
-  // ---------------------------------------------------
-
   async submitApplication(
     careerId: string,
     dto: SubmitApplicationDto,
@@ -204,23 +169,34 @@ export class CareerService {
     // always set. It used to read an undefined config key and silently skip.
     const hrEmail = this.config.get<string>('mail.hr');
 
-    try {
-      await this.mailService.sendEmail({
-        to: hrEmail!,
-        subject: `New Application – ${career.title}`,
-        template: 'application-submitted',
-        context: {
-          jobTitle: career.title,
-          name: app.name,
-          email: app.email,
+    // notifyNew never rejects, so neither the upload nor the saved application
+    // can be lost to a mail outage.
+    await this.dashboardNotifier.notifyNew({
+      kind: 'job application',
+      heading: `New application — ${career.title}`,
+      to: hrEmail,
+      rows: [
+        { label: 'Position', value: career.title },
+        { label: 'Name', value: app.name },
+        { label: 'Email', value: app.email, href: `mailto:${app.email}` },
+        {
+          label: 'Phone',
+          value: app.phone,
+          href: app.phone ? `tel:${app.phone}` : undefined,
         },
-      });
-    } catch (err) {
-      this.logger.error(
-        `Application ${String(app._id)} saved but notification email failed`,
-        err instanceof Error ? err.stack : String(err),
-      );
-    }
+        { label: 'Why interested', value: app.interestReason },
+        { label: 'Cover letter', value: app.coverLetter },
+        {
+          label: 'Résumé',
+          value: app.resumeUrl ? 'Download résumé' : undefined,
+          href: app.resumeUrl,
+        },
+      ],
+      // The applicants page reads ?email= as a filter, so this lands on the
+      // single application rather than the top of the list.
+      dashboardPath: `/applicants?email=${encodeURIComponent(app.email)}`,
+      recordId: String(app._id),
+    });
 
     return app;
   }
@@ -255,7 +231,10 @@ export class CareerService {
     if (query.email) {
       // Escaped: the raw value used to go straight into a RegExp, so a stray
       // "(" in the admin's search box threw out of the driver as a 500.
-      const escaped = String(query.email).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escaped = String(query.email).replace(
+        /[.*+?^${}()|[\]\\]/g,
+        '\\$&',
+      );
       filter.email = new RegExp(escaped, 'i');
     }
 
