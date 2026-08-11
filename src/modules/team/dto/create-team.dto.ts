@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateTeamMemberDto {
   @IsString()
@@ -16,4 +17,9 @@ export class CreateTeamMemberDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  order?: number;
 }

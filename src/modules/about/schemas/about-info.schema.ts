@@ -33,6 +33,7 @@ export class AboutInfo {
   trackRecord: {
     title: string; // e.g. "12+"
     subtitle: string; // e.g. "Years in Development"
+    description?: string; // optional longer copy shown under the subtitle
   }[];
 }
 
