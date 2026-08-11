@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # What belongs in this repo: everything scripts/deploy.sh needs to BUILD on the
-# server — src/, package.json, pnpm-lock.yaml, pnpm-workspace.yaml,
-# nest-cli.json, tsconfig*.json, ecosystem.config.js, scripts/.
+# server — src/, package.json, pnpm-lock.yaml, nest-cli.json, tsconfig*.json,
+# ecosystem.config.js, scripts/.
 #
 # So "not needed to run in production" is NOT the test for ignoring something.
 # src/ and test/ are not shipped, but the server compiles from source, and tests
@@ -12,9 +12,11 @@
 # ---------------------------------------------------------------------------
 
 # --- Build output (deploy.sh regenerates all of it) ---
-# Unanchored so nested copies are covered too: the pnpm workspace links
-# ../upload-pro and materializes packages/upload-pro/, which a root-anchored
-# /dist and /node_modules silently missed.
+# Unanchored so nested copies are covered too. This mattered when the pnpm
+# workspace linked ../upload-pro and materialized packages/upload-pro/, which a
+# root-anchored /dist and /node_modules silently missed. That link is gone —
+# upload-pro installs from the registry now — but unanchored is still the safer
+# default for anything pnpm materializes.
 dist/
 build/
 node_modules/

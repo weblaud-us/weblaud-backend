@@ -1,38 +1,34 @@
 # Backend deployment
 
-## Build order matters
-
-`@weblaud/upload-pro` is a sibling directory linked via `pnpm-workspace.yaml`
-(`link:../upload-pro`), not a published package. Its `dist/` is gitignored, and
-because pnpm *links* rather than installs, no `prepare` or `prepublishOnly`
-hook fires to build it. A fresh checkout therefore has no compiled output for
-it, and the API dies on startup with:
-
-```
-Error: Cannot find module '@weblaud/upload-pro'
-```
-
-Always build it first. `scripts/deploy.sh` does this and verifies the result:
+## Deploying
 
 ```bash
 cd /var/www/weblaud-backend
 ./scripts/deploy.sh
 ```
 
-Or manually:
+The repo is self-contained. `@weblaud/upload-pro` is a normal registry
+dependency (`^1.1.0`), so the server needs nothing beside this checkout — no
+sibling `upload-pro` directory, no pre-build step.
+
+## Upgrading @weblaud/upload-pro
+
+That package is developed in its own repo and published to npm. Changing its
+source has **no effect on this backend** until it is published and the range
+here is updated:
 
 ```bash
-npm run build:all      # builds upload-pro, then the backend
+# in the upload-pro repo
+npm version minor && npm publish
+
+# here
+pnpm update @weblaud/upload-pro    # or edit the range in package.json
+pnpm install                       # commit the updated pnpm-lock.yaml
 ```
 
-The directory layout on the server must mirror the repo layout — `upload-pro`
-sits next to `backend`:
-
-```
-/var/www/
-├── weblaud-backend/     ← this repo
-└── upload-pro/          ← sibling, must be checked out and built
-```
+Because `pnpm install --frozen-lockfile` runs on the server, a version bump
+that is not reflected in `pnpm-lock.yaml` fails the deploy rather than
+silently installing something else.
 
 ## Environment
 

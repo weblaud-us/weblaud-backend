@@ -7,8 +7,6 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "build:deps": "npm --prefix ../upload-pro ci && npm --prefix ../upload-pro run build",
-    "build:all": "npm run build:deps && npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -37,7 +35,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/throttler": "^6.4.0",
     "@types/compression": "^1.8.1",
-    "@weblaud/upload-pro": "file:../upload-pro",
+    "@weblaud/upload-pro": "^1.1.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

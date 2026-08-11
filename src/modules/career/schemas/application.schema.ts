@@ -5,12 +5,11 @@ export type ApplicationDocument = Application & Document;
 
 @Schema({ timestamps: true })
 export class Application {
-  // Must be Schema.Types.ObjectId, not Types.ObjectId: this workspace resolves
-  // more than one copy of mongoose (upload-pro is linked with its own), so the
-  // ObjectId *constructor* imported here isn't the one the schema compiler
-  // recognizes — it silently registered the path as Mixed. Nothing then cast
-  // query strings to ObjectId, so filtering applications by careerId matched
-  // nothing at all.
+  // Must be Schema.Types.ObjectId, not Types.ObjectId. The latter is the value
+  // constructor; only the former is a schema *type* the compiler recognizes.
+  // Passing the constructor silently registered the path as Mixed, so nothing
+  // cast query strings to ObjectId and filtering applications by careerId
+  // matched nothing at all. Fails quietly at query time, not at boot.
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Career', required: true })
   careerId: Types.ObjectId;
 

@@ -34,10 +34,12 @@ const RESUME_MAX_BYTES = 5 * 1024 * 1024;
 
 /**
  * Reuses upload-pro's extension/mime cross-check but re-raises the rejection
- * using *this* package's BadRequestException. upload-pro is linked in with its
- * own copy of @nestjs/common, so the exception it constructs fails the
- * `instanceof HttpException` check in our exception filter and a plain bad file
- * type would otherwise surface as a 500 instead of a 400.
+ * using *this* package's BadRequestException, so the rejection is a 400 no
+ * matter which copy of @nestjs/common the dependency resolved. It declares
+ * @nestjs/common as a peer, so today that is our copy and the exception would
+ * pass the `instanceof HttpException` check in our filter unaided — but when it
+ * was linked from a sibling directory it carried its own copy, and a bad file
+ * type surfaced as a 500. Keeping the re-raise makes that unable to regress.
  */
 const resumeFileFilter: MulterOptions['fileFilter'] = (req, file, callback) => {
   buildFileFilter(RESUME_TYPES)(req, file, (error, acceptFile) => {
