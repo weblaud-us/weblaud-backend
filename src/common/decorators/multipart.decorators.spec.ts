@@ -24,25 +24,27 @@ describe('team member (PATCH /team/:id)', () => {
   const base = { name: 'Ada', title: 'Engineer' };
 
   it('unchecking the box saves isActive: false', async () => {
-    await expect(run(UpdateTeamMemberDto, { ...base, isActive: 'false' })).resolves.toMatchObject(
-      { isActive: false },
-    );
+    await expect(
+      run(UpdateTeamMemberDto, { ...base, isActive: 'false' }),
+    ).resolves.toMatchObject({ isActive: false });
   });
 
   it('checking the box saves isActive: true', async () => {
-    await expect(run(UpdateTeamMemberDto, { ...base, isActive: 'true' })).resolves.toMatchObject(
-      { isActive: true },
-    );
+    await expect(
+      run(UpdateTeamMemberDto, { ...base, isActive: 'true' }),
+    ).resolves.toMatchObject({ isActive: true });
   });
 
   it('leaves a real boolean alone', async () => {
-    await expect(run(UpdateTeamMemberDto, { ...base, isActive: false })).resolves.toMatchObject(
-      { isActive: false },
-    );
+    await expect(
+      run(UpdateTeamMemberDto, { ...base, isActive: false }),
+    ).resolves.toMatchObject({ isActive: false });
   });
 
   it('omits isActive entirely when the field is absent', async () => {
-    await expect(run(UpdateTeamMemberDto, base)).resolves.not.toHaveProperty('isActive');
+    await expect(run(UpdateTeamMemberDto, base)).resolves.not.toHaveProperty(
+      'isActive',
+    );
   });
 
   it('parses the social links back into an object', async () => {
@@ -53,7 +55,9 @@ describe('team member (PATCH /team/:id)', () => {
   });
 
   it('rejects social that is not an object', async () => {
-    await expect(run(UpdateTeamMemberDto, { ...base, social: 'not json' })).rejects.toThrow();
+    await expect(
+      run(UpdateTeamMemberDto, { ...base, social: 'not json' }),
+    ).rejects.toThrow();
   });
 });
 
@@ -85,7 +89,9 @@ describe('service (POST /services, PUT /services/:id)', () => {
   const base = { title: 'Web apps', description: 'We build them' };
 
   it('accepts a single feature bullet', async () => {
-    await expect(run(CreateServiceDto, { ...base, features: 'Fast' })).resolves.toMatchObject({
+    await expect(
+      run(CreateServiceDto, { ...base, features: 'Fast' }),
+    ).resolves.toMatchObject({
       features: ['Fast'],
     });
   });

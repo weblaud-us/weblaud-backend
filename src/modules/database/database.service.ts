@@ -13,7 +13,9 @@ export class DatabaseService implements OnModuleInit {
     this.logger.log(`📊 Database connection state: ${state}`);
 
     if (this.connection.readyState === 1) {
-      this.logger.log(`✅ Connected to: ${this.connection.name} at ${this.connection.host}`);
+      this.logger.log(
+        `✅ Connected to: ${this.connection.name} at ${this.connection.host}`,
+      );
     }
   }
 
@@ -26,7 +28,7 @@ export class DatabaseService implements OnModuleInit {
       2: 'connecting',
       3: 'disconnecting',
     };
-    
+
     const stateString = stateMap[state] || 'unknown';
     const isHealthy = state === 1;
 

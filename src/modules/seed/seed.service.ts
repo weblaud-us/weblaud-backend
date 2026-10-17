@@ -138,10 +138,7 @@ export class SeedService implements OnModuleInit {
         `Admin user created successfully: ${admin.email} (ID: ${admin._id})`,
       );
     } catch (error) {
-      this.logger.error(
-        'Failed to seed admin user:',
-        error.message || error,
-      );
+      this.logger.error('Failed to seed admin user:', error.message || error);
       // Don't throw - allow application to continue starting
     }
   }

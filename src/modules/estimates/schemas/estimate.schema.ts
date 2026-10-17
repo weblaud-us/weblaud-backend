@@ -1,5 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import {
+  HEARD_ABOUT_OPTIONS,
+  LEAD_STAGES,
+  type LeadStage,
+} from '../../leads/lead.constants';
+import {
+  LeadAttribution,
+  LeadAttributionSchema,
+} from '../../leads/schemas/lead-attribution.schema';
 
 export type EstimateDocument = Estimate & Document;
 
@@ -65,6 +74,36 @@ export class Estimate {
 
   @Prop({ default: 'new', enum: ['new', 'read'] })
   status: string;
+
+  // --- Sales pipeline (admin-managed; see leads/lead.constants.ts) ---
+
+  @Prop({ type: String, default: 'new', enum: LEAD_STAGES })
+  stage: LeadStage;
+
+  /**
+   * Admin-only notes on the deal — never shown to the lead. Not `notes`:
+   * that field is what the lead wrote on the form.
+   */
+  @Prop()
+  internalNotes?: string;
+
+  @Prop()
+  nextFollowUpAt?: Date;
+
+  @Prop()
+  lostReason?: string;
+
+  // --- Where the lead came from (visitor-supplied) ---
+
+  @Prop({ type: LeadAttributionSchema })
+  attribution?: LeadAttribution;
+
+  @Prop({ enum: HEARD_ABOUT_OPTIONS })
+  heardAbout?: string;
+
+  /** When the emailed copy of the estimate went out, if it did. */
+  @Prop()
+  autoReplySentAt?: Date;
 }
 
 export const EstimateSchema = SchemaFactory.createForClass(Estimate);

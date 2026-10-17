@@ -5,10 +5,12 @@ import { EstimatesController } from './estimates.controller';
 import { Estimate, EstimateSchema } from './schemas/estimate.schema';
 import { MailModule } from '../mail/mail.module';
 import { CalculatorConfigModule } from '../calculator-config/calculator-config.module';
+import { LeadsModule } from '../leads/leads.module';
 
 @Module({
   imports: [
     MailModule,
+    LeadsModule,
     CalculatorConfigModule,
     MongooseModule.forFeature([
       { name: Estimate.name, schema: EstimateSchema },

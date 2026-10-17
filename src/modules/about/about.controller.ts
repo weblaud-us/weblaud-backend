@@ -8,7 +8,6 @@ import { UpdateStatsDto } from 'src/modules/about/dto/update-stats.dto';
 import { UpdateStoryMissionDto } from 'src/modules/about/dto/update-story-mission.dto';
 import { UpdateTrackRecordDto } from 'src/modules/about/dto/update-track-record.dto';
 
-
 @Controller('about')
 export class AboutInfoController {
   constructor(private readonly service: AboutInfoService) {}

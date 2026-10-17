@@ -5,6 +5,7 @@ import { EstimatesService } from './estimates.service';
 import { Estimate } from './schemas/estimate.schema';
 import { DashboardNotifierService } from '../mail/dashboard-notifier.service';
 import { CalculatorConfigService } from '../calculator-config/calculator-config.service';
+import { LeadReplyService } from '../leads/lead-reply.service';
 
 const CONFIG = {
   baseCost: 4500,
@@ -35,8 +36,11 @@ describe('EstimatesService', () => {
     countDocuments: jest.Mock;
     findByIdAndUpdate: jest.Mock;
     findByIdAndDelete: jest.Mock;
+    exists: jest.Mock;
+    updateOne: jest.Mock;
   };
   let notifier: { notifyNew: jest.Mock };
+  let leadReply: { sendEstimateSummary: jest.Mock };
   let config: { getPublic: jest.Mock };
 
   /** Flattens the grouped sections back to rows for easier assertions. */
@@ -53,8 +57,11 @@ describe('EstimatesService', () => {
       countDocuments: jest.fn(),
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
+      exists: jest.fn().mockResolvedValue(null),
+      updateOne: jest.fn().mockResolvedValue({}),
     };
     notifier = { notifyNew: jest.fn().mockResolvedValue(undefined) };
+    leadReply = { sendEstimateSummary: jest.fn().mockResolvedValue(true) };
     config = { getPublic: jest.fn().mockResolvedValue(CONFIG) };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -63,6 +70,7 @@ describe('EstimatesService', () => {
         { provide: getModelToken(Estimate.name), useValue: model },
         { provide: DashboardNotifierService, useValue: notifier },
         { provide: CalculatorConfigService, useValue: config },
+        { provide: LeadReplyService, useValue: leadReply },
       ],
     }).compile();
 
@@ -166,5 +174,60 @@ describe('EstimatesService', () => {
     await expect(service.submit(VALID_DTO)).rejects.toThrow(
       BadRequestException,
     );
+  });
+
+  describe('lead follow-through', () => {
+    it('emails the lead the server-computed estimate', async () => {
+      await service.submit(VALID_DTO);
+
+      expect(leadReply.sendEstimateSummary).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Ada',
+        {
+          projectTypeTitle: 'Operations',
+          featureTitles: ['Auth'],
+          speedLabel: 'Standard',
+          totalWeeks: 7,
+          costMin: 5000,
+          costMax: 6500,
+        },
+      );
+      expect(model.updateOne).toHaveBeenCalledWith(
+        { _id: 'abc' },
+        { autoReplySentAt: expect.any(Date) },
+      );
+    });
+
+    it('skips the email when this address already got one today', async () => {
+      model.exists.mockResolvedValue({ _id: 'earlier' });
+
+      await service.submit(VALID_DTO);
+
+      expect(model.create).toHaveBeenCalled();
+      expect(leadReply.sendEstimateSummary).not.toHaveBeenCalled();
+    });
+
+    it('stores attribution and the self-reported source', async () => {
+      await service.submit({
+        ...VALID_DTO,
+        attribution: { utmSource: 'linkedin', utmCampaign: 'q4' },
+        heardAbout: 'linkedin',
+      });
+
+      const saved = model.create.mock.calls[0][0];
+      expect(saved.attribution).toEqual({
+        utmSource: 'linkedin',
+        utmCampaign: 'q4',
+      });
+      expect(saved.heardAbout).toBe('linkedin');
+      expect(notifiedRows()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            label: 'Campaign',
+            value: 'linkedin / q4',
+          }),
+        ]),
+      );
+    });
   });
 });

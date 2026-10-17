@@ -5,7 +5,10 @@ import { Tokens } from './types/token.types';
 
 @Injectable()
 export class TokenService {
-  constructor(private jwt: JwtService, private config: ConfigService) {}
+  constructor(
+    private jwt: JwtService,
+    private config: ConfigService,
+  ) {}
 
   async signTokens(userId: string, role: string): Promise<Tokens> {
     const payload = { sub: userId, role };
@@ -17,7 +20,8 @@ export class TokenService {
 
     const refreshToken = await this.jwt.signAsync(payload, {
       secret: this.config.get<string>('jwt.refreshSecret'),
-      expiresIn: (this.config.get<string>('jwt.refreshExpiresIn') || '7d') as any,
+      expiresIn: (this.config.get<string>('jwt.refreshExpiresIn') ||
+        '7d') as any,
     });
 
     return { accessToken, refreshToken };

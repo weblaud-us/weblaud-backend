@@ -1,10 +1,15 @@
 import {
   IsArray,
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { LeadAttributionDto } from '../../leads/dto/lead-attribution.dto';
+import { HEARD_ABOUT_OPTIONS } from '../../leads/lead.constants';
 
 /**
  * Note the absence of any price/week field: the estimate is recomputed server
@@ -42,4 +47,13 @@ export class CreateEstimateDto {
   @IsString()
   @IsNotEmpty()
   speedId: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LeadAttributionDto)
+  attribution?: LeadAttributionDto;
+
+  @IsOptional()
+  @IsIn(HEARD_ABOUT_OPTIONS)
+  heardAbout?: string;
 }

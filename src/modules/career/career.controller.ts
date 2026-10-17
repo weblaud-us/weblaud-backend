@@ -28,6 +28,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Role } from 'src/common/enum/user.role.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { CaptchaGuard } from 'src/common/guards/captcha.guard';
 
 const RESUME_TYPES = ['pdf', 'doc', 'docx'];
 const RESUME_MAX_BYTES = 5 * 1024 * 1024;
@@ -111,8 +112,12 @@ export class CareerController {
   // multer starts buffering bytes, so the resume type/size check has to live
   // here; UploadService.upload() does no validation of its own, and no
   // MulterModule is registered globally to supply a default.
+  //
+  // CaptchaGuard runs before the FileInterceptor (guards precede
+  // interceptors), so a failed bot check uploads nothing.
   @Public()
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @UseGuards(CaptchaGuard)
   @Post(':id/apply')
   @UseInterceptors(
     FileInterceptor('resume', {
@@ -140,6 +145,36 @@ export class CareerController {
     return this.service.getApplication(id);
   }
 
+  /**
+   * The applicant's CV, streamed through an admin-only endpoint with a real
+   * filename and content type. Linking the stored Cloudinary URL directly
+   * didn't work: upload-pro stores PDF/DOCX as `raw` assets with the file
+   * extension stripped from the public id, so the browser downloaded an
+   * extensionless `uuid-John_CV` that nothing would open. It also meant every
+   * CV was a public URL. `?download=1` forces a download instead of the
+   * inline PDF view.
+   */
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('applications/:id/resume')
+  async resume(
+    @Param('id') id: string,
+    @Query('download') download: string | undefined,
+    @Res() res: Response,
+  ) {
+    const file = await this.service.getResumeFile(id);
+    const inline = file.contentType === 'application/pdf' && download !== '1';
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `${inline ? 'inline' : 'attachment'}; filename="${file.filename}"`,
+    );
+    res.setHeader('Content-Length', String(file.buffer.length));
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'no-store');
+    res.end(file.buffer);
+  }
+
   // -------- ADMIN: VIEW APPLICANTS --------
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
@@ -162,4 +197,3 @@ export class CareerController {
     return this.service.updateStatus(id, status);
   }
 }
-

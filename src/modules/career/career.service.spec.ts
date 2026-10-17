@@ -15,7 +15,10 @@ const DTO = {
   coverLetter: 'Please find my details attached',
 };
 
-const RESUME = { originalname: 'cv.pdf' } as Express.Multer.File;
+const RESUME = {
+  originalname: 'cv.pdf',
+  mimetype: 'application/pdf',
+} as Express.Multer.File;
 
 /** submitApplication casts this to an ObjectId, so it must be 24 hex chars. */
 const CAREER_ID = '507f1f77bcf86cd799439011';
@@ -30,7 +33,7 @@ describe('CareerService — application notifications', () => {
   let service: CareerService;
   let careerModel: { findById: jest.Mock };
   let appModel: { create: jest.Mock };
-  let notifier: { notifyNew: jest.Mock };
+  let notifier: { notifyNew: jest.Mock; adminUrl: jest.Mock };
 
   const notified = () =>
     notifier.notifyNew.mock.calls[0][0] as {
@@ -53,7 +56,14 @@ describe('CareerService — application notifications', () => {
         .fn()
         .mockImplementation((doc: object) => ({ _id: 'app1', ...doc })),
     };
-    notifier = { notifyNew: jest.fn().mockResolvedValue(undefined) };
+    notifier = {
+      notifyNew: jest.fn().mockResolvedValue(undefined),
+      adminUrl: jest
+        .fn()
+        .mockImplementation(
+          (path: string) => `https://weblaud.com/cpadmin${path}`,
+        ),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -104,11 +114,28 @@ describe('CareerService — application notifications', () => {
     expect(row('Cover letter').value).toBe('Please find my details attached');
   });
 
-  it('links the résumé for one-click download', async () => {
+  // Not the raw storage URL: that was public, and Cloudinary served it as an
+  // extensionless file nothing could open. The admin route requires a login
+  // and sends a proper filename and content type.
+  it('links the résumé through the admin panel, not the raw storage URL', async () => {
     await service.submitApplication(CAREER_ID, DTO, RESUME);
 
-    expect(row('Résumé').href).toBe('https://cdn.example.com/cv.pdf');
-    expect(row('Résumé').value).toBe('Download résumé');
+    expect(row('Résumé').href).toBe(
+      'https://weblaud.com/cpadmin/applicants/app1/resume',
+    );
+    expect(row('Résumé').href).not.toContain('cdn.example.com');
+    expect(row('Résumé').value).toBe('View résumé');
+  });
+
+  it('records the original filename and MIME type so the CV can be served correctly', async () => {
+    await service.submitApplication(CAREER_ID, DTO, RESUME);
+
+    expect(appModel.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resumeFileName: RESUME.originalname,
+        resumeMimeType: RESUME.mimetype,
+      }),
+    );
   });
 
   it('deep-links to the applicant filtered by email', async () => {

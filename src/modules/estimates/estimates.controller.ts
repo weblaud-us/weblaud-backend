@@ -16,6 +16,8 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/user.role.enum';
+import { CaptchaGuard } from 'src/common/guards/captcha.guard';
+import { UpdateLeadPipelineDto } from '../leads/dto/update-lead-pipeline.dto';
 
 @Controller('estimates')
 export class EstimatesController {
@@ -24,6 +26,7 @@ export class EstimatesController {
   // Tighter than the global ThrottlerGuard default — this is a public write.
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(CaptchaGuard)
   @Post('submit')
   submit(@Body() dto: CreateEstimateDto) {
     return this.estimatesService.submit(dto);
@@ -32,8 +35,20 @@ export class EstimatesController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Get('admin')
-  getAll(@Query('page') page?: number, @Query('limit') limit?: number) {
-    return this.estimatesService.findAll(page, limit);
+  getAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: string,
+    @Query('stage') stage?: string,
+  ) {
+    return this.estimatesService.findAll(page, limit, status, stage);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Patch('admin/:id/pipeline')
+  updatePipeline(@Param('id') id: string, @Body() dto: UpdateLeadPipelineDto) {
+    return this.estimatesService.updatePipeline(id, dto);
   }
 
   @UseGuards(RolesGuard)

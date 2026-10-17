@@ -4,13 +4,13 @@ import { ContactService } from './contact.service';
 import { ContactController } from './contact.controller';
 import { Contact, ContactSchema } from './schemas/contact.schema';
 import { MailModule } from '../mail/mail.module';
+import { LeadsModule } from '../leads/leads.module';
 
 @Module({
   imports: [
     MailModule,
-    MongooseModule.forFeature([
-      { name: Contact.name, schema: ContactSchema },
-    ]),
+    LeadsModule,
+    MongooseModule.forFeature([{ name: Contact.name, schema: ContactSchema }]),
   ],
   controllers: [ContactController],
   providers: [ContactService],

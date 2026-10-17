@@ -436,6 +436,104 @@ const PROJECTS_SEED: ProjectSeed[] = [
     businessImpact:
       'Brought bid update latency from 5 seconds to under 100ms, eliminated disputed bid-order tickets entirely in the first six months post-launch, and sustained 25,000 concurrent bidders through closing nights with zero downtime.',
   },
+
+  // -------------------------------------------------------------------------
+  // Third wave — written to the same search/answer-engine shape as the second:
+  // self-contained `description` carrying the headline number, keyword-shaped
+  // `features`, quotable before/after `businessImpact`, and a `problem` that
+  // states the buyer's question in the words they'd actually search. Each also
+  // names a region or sector so location-qualified and "near me"-style queries
+  // have something concrete to match. Cover photos are free Pexels stock,
+  // re-uploaded to our own storage.
+  // -------------------------------------------------------------------------
+  {
+    slug: 'headless-ecommerce-storefront-checkout-rebuild',
+    name: 'Headless E-Commerce Storefront & Checkout Rebuild',
+    description:
+      'A headless commerce storefront and one-page checkout rebuild for a US home-goods retailer that cut mobile page load from 6.2s to 1.1s and lifted checkout completion by 34% on a catalog of 18,000 SKUs.',
+    features: [
+      'Headless storefront on a composable commerce API with edge caching',
+      'One-page checkout with express wallets, tax & address validation',
+      'Product schema markup driving rich results & AI shopping answers',
+    ],
+    // https://www.pexels.com/photo/7620626/ — online shopping with shipping boxes
+    imageUrl:
+      'https://images.pexels.com/photos/7620626/pexels-photo-7620626.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'Headless e-commerce storefront and checkout rebuild for an online retailer',
+    problem:
+      'A US home-goods retailer ran an aging monolithic storefront where category pages took 6.2 seconds to become interactive on mobile, the four-step checkout lost most of its shoppers before payment, and every merchandising change needed a developer and a full redeploy. Product pages carried no structured data, so the catalog never appeared in rich results or in AI shopping answers.',
+    solution:
+      'We separated the storefront from the commerce backend, serving a server-rendered front end from the edge while orders, inventory, and pricing stay in the commerce API. Checkout collapsed to a single page with express wallet payments, inline address and tax validation, and saved payment methods. Product, Offer, AggregateRating, and BreadcrumbList JSON-LD is generated from catalog data on every template, and merchandisers now publish collections and landing pages from the CMS without a deploy.',
+    techStack: ['React', 'Next.js', 'Node.js', 'PostgreSQL', 'Stripe', 'Cloudflare CDN'],
+    businessImpact:
+      'Cut mobile time-to-interactive from 6.2s to 1.1s across 18,000 SKUs, lifted checkout completion 34% and mobile revenue per session 28% in the first quarter, and took merchandising changes from a two-day developer queue to same-day self-serve.',
+  },
+  {
+    slug: 'fleet-telematics-live-delivery-tracking-platform',
+    name: 'Fleet Telematics & Live Delivery Tracking Platform',
+    description:
+      'A real-time fleet telematics and delivery tracking platform ingesting GPS telemetry from 380 vehicles every few seconds, giving dispatchers a live map and customers accurate ETAs — and cutting "where is my driver?" support calls by 78%.',
+    features: [
+      'GPS telemetry ingestion from 380 vehicles with live dispatcher map',
+      'Customer-facing live tracking links with predicted ETA windows',
+      'Route replay, geofence alerts & driver safety event reporting',
+    ],
+    // https://www.pexels.com/photo/38199714/ — delivery truck fleet
+    imageUrl:
+      'https://images.pexels.com/photos/38199714/pexels-photo-38199714.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'Fleet telematics and live delivery tracking platform for a logistics operator',
+    problem:
+      'A regional last-mile logistics operator tracked its 380-vehicle fleet by calling drivers on their mobile phones. Dispatchers had no map of where anything was, customers were quoted four-hour delivery windows that were frequently missed, and the support line filled every afternoon with "where is my driver?" calls that took a phone call to a driver to answer. Nothing about a completed route could be reconstructed afterwards for a disputed delivery.',
+    solution:
+      'We built a streaming ingestion pipeline that accepts GPS and vehicle telemetry every few seconds, writes it to a time-series store, and fans the current fleet position out over WebSockets to a live dispatcher map. Customers get a tracking link with a predicted ETA recalculated continuously from live position, traffic, and remaining stops. Geofence entry and exit generate arrival and departure events automatically, and every route can be replayed second by second for dispute resolution and driver safety review.',
+    techStack: ['Node.js', 'WebSocket', 'TimescaleDB', 'Redis', 'Mapbox', 'Docker', 'AWS'],
+    businessImpact:
+      'Cut "where is my driver?" support calls by 78%, narrowed customer delivery windows from four hours to 30 minutes with 94% on-time arrival, and resolved delivery disputes from route replay in minutes instead of days.',
+  },
+  {
+    slug: 'legacy-monolith-modernization-engineering-pod',
+    name: 'Legacy Monolith Modernization with an Embedded Engineering Pod',
+    description:
+      'An embedded senior engineering pod that carved a 12-year-old PHP monolith into deployable services alongside the client’s own team, taking releases from quarterly to daily with no feature freeze and no rewrite from scratch.',
+    features: [
+      'Strangler-fig migration with zero-downtime cutover, service by service',
+      'Automated test harness & CI/CD replacing manual quarterly releases',
+      'Pair programming and handover so the in-house team owns the result',
+    ],
+    // https://www.pexels.com/photo/7988757/ — engineers reviewing code together
+    imageUrl:
+      'https://images.pexels.com/photos/7988757/pexels-photo-7988757.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'Embedded engineering pod modernizing a legacy monolith alongside an in-house team',
+    problem:
+      'A logistics software company depended on a 12-year-old PHP monolith with no automated tests, a release process that took a weekend of manual regression checks, and a handful of original authors who had long since left. Shipping had slowed to roughly one release a quarter, onboarding a new engineer took two months, and leadership had been quoted an 18-month full rewrite that would have frozen the product roadmap for the duration.',
+    solution:
+      'Instead of a rewrite we embedded a three-engineer senior pod into the client’s existing sprints and applied a strangler-fig migration: characterization tests first to pin down current behavior, then the highest-churn areas extracted one at a time into independently deployable services behind a routing layer, each cut over with traffic shifting and an instant rollback path. CI/CD with automated test gates replaced the manual regression weekend. Every extraction was paired with a client engineer, so the in-house team owns and extends the new services rather than depending on us.',
+    techStack: ['PHP', 'Node.js', 'TypeScript', 'PostgreSQL', 'Docker', 'GitHub Actions', 'AWS'],
+    businessImpact:
+      'Took releases from quarterly to daily with no feature freeze, cut new-engineer onboarding from 8 weeks to under 2, and avoided the 18-month rewrite entirely — the roadmap kept shipping throughout the migration.',
+  },
+  {
+    slug: 'hipaa-clinic-management-patient-portal',
+    name: 'HIPAA-Compliant Clinic Management & Patient Portal',
+    description:
+      'A HIPAA-compliant practice management platform and patient portal for a multi-location US clinic group, replacing phone-only booking and paper intake with online scheduling and digital forms — dropping no-shows from 19% to 6%.',
+    features: [
+      'Online appointment scheduling across locations with automated reminders',
+      'Digital patient intake, e-signature consent & secure document upload',
+      'HIPAA-aligned audit logging, encryption at rest & role-based PHI access',
+    ],
+    // https://www.pexels.com/photo/6285362/ — clinic staff at a workstation
+    imageUrl:
+      'https://images.pexels.com/photos/6285362/pexels-photo-6285362.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    imageAlt: 'HIPAA-compliant clinic management platform and patient portal for a medical practice',
+    problem:
+      'A multi-location clinic group booked every appointment by phone, so patients could only reach the front desk during office hours and staff spent their mornings on scheduling calls instead of arriving patients. Intake was paper, re-keyed into the practice system by hand, and clinical documents moved between locations as email attachments — a standing HIPAA exposure with no audit trail of who had opened a patient record.',
+    solution:
+      'We built a scheduling platform with real-time provider availability across every location, online self-booking, and automated SMS and email reminders with one-tap confirm or reschedule. Patients complete intake and consent forms digitally before arrival and upload documents into an encrypted store, so records post straight into the chart with no re-keying. Access to protected health information is role-scoped per location, every read and write is written to a tamper-evident audit log, and data is encrypted at rest and in transit under a signed business associate agreement.',
+    techStack: ['React', 'Node.js', 'PostgreSQL', 'Redis', 'Twilio', 'AWS KMS', 'AWS'],
+    businessImpact:
+      'Dropped no-show rate from 19% to 6% within two quarters, moved 62% of bookings to self-serve outside office hours, and gave every PHI access a complete audit trail for the group’s HIPAA compliance review.',
+  },
 ];
 
 const TEAM_SEED = [

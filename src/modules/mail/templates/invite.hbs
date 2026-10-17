@@ -1,0 +1,30 @@
+<div style="font-family: Arial, sans-serif; padding: 20px;">
+  <h2>You've been invited to the WebLaud Portal</h2>
+
+  <p>Hi {{firstName}},</p>
+
+  <p>
+    {{#if inviterOrg}}
+      {{inviterOrg}} has
+    {{else}}
+      WebLaud has
+    {{/if}}
+    invited you to the client portal, where you can track project progress, updates, files, and invoices.
+  </p>
+
+  <p style="margin: 28px 0;">
+    <a
+      href="{{acceptUrl}}"
+      style="background: #0a84ff; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;"
+    >
+      Accept invitation
+    </a>
+  </p>
+
+  <p>This link is valid for {{ttlHours}} hours. If it expires, ask your project manager to resend it.</p>
+
+  <p>If you weren't expecting this, you can safely ignore this email.</p>
+
+  <br/>
+  <strong>WebLaud Team</strong>
+</div>

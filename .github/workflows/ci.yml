@@ -1,0 +1,35 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # Build + unit tests on every push and PR. Lint is not gated yet: the
+  # codebase carried ~576 pre-existing ESLint errors when this was added, so
+  # a lint step would only ever be red. Add `pnpm exec eslint ...` (without
+  # --fix) here once that backlog is cleared.
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # Unit specs only (jest rootDir is src/). They mock Mongo, mail and
+      # every external service — nothing here touches a real database.
+      - run: pnpm test

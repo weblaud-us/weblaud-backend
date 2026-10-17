@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -34,7 +38,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       } else if (info?.message === 'jwt malformed') {
         throw new UnauthorizedException('Malformed token');
       }
-      
+
       // Default error message
       throw new UnauthorizedException('Authentication failed');
     }

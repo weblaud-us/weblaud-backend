@@ -88,7 +88,7 @@ export class DashboardNotifierService {
           heading: input.heading || `New ${input.kind}`,
           intro: input.intro,
           sections: this.buildSections(input.rows),
-          dashboardUrl: this.buildUrl(input.dashboardPath),
+          dashboardUrl: this.adminUrl(input.dashboardPath),
           // Stamped centrally so no call site can leave the footer reading
           // "Received at " with nothing after it, as the old per-service
           // templates could.
@@ -108,8 +108,11 @@ export class DashboardNotifierService {
    * The one place trailing slashes are reconciled. Returns '' when
    * ADMIN_BASE_URL is unset so the template drops the CTA block entirely
    * rather than rendering a link to "undefined/contact-submissions".
+   *
+   * Public so callers can deep-link other admin pages from a row's href
+   * (e.g. the applicant's résumé) with the same base-URL handling.
    */
-  private buildUrl(dashboardPath: string): string {
+  adminUrl(dashboardPath: string): string {
     const base = (this.config.get<string>('admin.baseUrl') ?? '')
       .trim()
       .replace(/\/+$/, '');

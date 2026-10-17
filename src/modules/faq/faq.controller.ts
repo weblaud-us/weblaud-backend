@@ -32,10 +32,7 @@ export class FaqController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Get('admin')
-  getAdminFaqs(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
+  getAdminFaqs(@Query('page') page?: number, @Query('limit') limit?: number) {
     return this.service.findAllAdmin(page, limit);
   }
 

@@ -12,7 +12,7 @@ export class ContactInfo {
   phone: string;
 
   @Prop({ required: true })
-  address: string;  // e.g. "Dhaka Bangladesh"
+  address: string; // e.g. "Dhaka Bangladesh"
 }
 
 export const ContactInfoSchema = SchemaFactory.createForClass(ContactInfo);

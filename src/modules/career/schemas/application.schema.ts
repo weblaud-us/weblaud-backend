@@ -31,6 +31,16 @@ export class Application {
   @Prop()
   resumeUrl: string;
 
+  // Original upload's name and MIME type. Needed because the stored URL can't
+  // be trusted for either: upload-pro strips the extension from Cloudinary
+  // `raw` assets. Absent on applications from before these were recorded —
+  // CareerService.getResumeFile sniffs the type from the bytes for those.
+  @Prop()
+  resumeFileName?: string;
+
+  @Prop()
+  resumeMimeType?: string;
+
   @Prop({
     type: String,
     enum: ['new', 'review', 'shortlisted', 'rejected', 'hired'],

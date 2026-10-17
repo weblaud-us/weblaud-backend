@@ -44,7 +44,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
         'message' in (exceptionResponse as any) &&
         isArray((exceptionResponse as any).message)
       ) {
-        const validationMessages = (exceptionResponse as any).message as ValidationError[];
+        const validationMessages = (exceptionResponse as any)
+          .message as ValidationError[];
         validationErrors = this.formatValidationErrors(validationMessages);
         message = 'Validation failed';
         error = 'Bad Request';
@@ -92,9 +93,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json(responseBody);
   }
 
-  private formatValidationErrors(errors: ValidationError[]): Array<{ field: string; errors: string[] }> {
+  private formatValidationErrors(
+    errors: ValidationError[],
+  ): Array<{ field: string; errors: string[] }> {
     const result: Array<{ field: string; errors: string[] }> = [];
-    
+
     for (const error of errors) {
       if (error.constraints) {
         result.push({
@@ -102,14 +105,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
           errors: Object.values(error.constraints),
         });
       }
-      
+
       // Handle nested validation errors
       if (error.children && error.children.length > 0) {
         const children = this.formatValidationErrors(error.children);
         result.push(...children);
       }
     }
-    
+
     return result;
   }
 }

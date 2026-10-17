@@ -57,6 +57,8 @@ export class MailService {
     template?: string;
     context?: any;
     html?: string;
+    /** Where a reply should go when `from` is a no-reply address. */
+    replyTo?: string;
   }) {
     const html = options.template
       ? this.compileTemplate(options.template, options.context)
@@ -67,6 +69,7 @@ export class MailService {
       subject: options.subject,
       html,
       from: this.config.get('mail.from'),
+      ...(options.replyTo ? { replyTo: options.replyTo } : {}),
     });
   }
 
@@ -76,6 +79,26 @@ export class MailService {
       subject: 'Your OTP Code',
       template: 'otp',
       context: { otp },
+    });
+  }
+
+  async sendInviteEmail(options: {
+    to: string;
+    firstName: string;
+    acceptUrl: string;
+    ttlHours: number;
+    inviterOrg?: string;
+  }) {
+    return this.sendEmail({
+      to: options.to,
+      subject: 'You are invited to the WebLaud Portal',
+      template: 'invite',
+      context: {
+        firstName: options.firstName,
+        acceptUrl: options.acceptUrl,
+        ttlHours: options.ttlHours,
+        inviterOrg: options.inviterOrg,
+      },
     });
   }
 }

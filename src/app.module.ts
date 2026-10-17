@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { envConfig } from './config/env.config';
 import { validateEnv } from './config/env.validation';
@@ -29,15 +30,27 @@ import { AppService } from './app.service';
     // parsed into config and then ignored in favour of hardcoded values — so
     // tuning them had no effect. Individual routes tighten this with @Throttle;
     // this is only the ceiling for everything else.
+    //
+    // Keyed on req.clientIp, not req.ip: nearly every request arrives from the
+    // website's SSR server, so req.ip would put every visitor in one shared
+    // bucket. clientIp is the forwarded visitor IP when the request carries a
+    // valid X-Internal-Secret — see client-context.util.ts and main.ts.
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
-        {
-          ttl: config.get<number>('throttle.ttl', 60000),
-          limit: config.get<number>('throttle.limit', 100),
-        },
-      ],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: config.get<number>('throttle.ttl', 60000),
+            limit: config.get<number>('throttle.limit', 100),
+          },
+        ],
+        getTracker: (req: Record<string, any>) =>
+          (req.clientIp as string | undefined) || (req.ip as string),
+      }),
     }),
+
+    // Powers @Cron() in InvoiceSchedulerService (overdue reminders, retainer generation).
+    ScheduleModule.forRoot(),
 
     //  Main domain module (your app's endpoints)
     DomainModule,

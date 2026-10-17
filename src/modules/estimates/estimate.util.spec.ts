@@ -29,7 +29,11 @@ const CONFIG: CalculatorConfigLike = {
   ],
 };
 
-const base = { projectTypeId: 'operations', featureIds: [], speedId: 'standard' };
+const base = {
+  projectTypeId: 'operations',
+  featureIds: [],
+  speedId: 'standard',
+};
 
 describe('estimateProject', () => {
   it('computes the base case with no features', () => {
@@ -61,13 +65,19 @@ describe('estimateProject', () => {
 
   it('clamps the timeline to the published delivery window', () => {
     const long = estimateProject(
-      { ...CONFIG, projectTypes: [{ id: 'x', title: 'X', weeks: 40, costMultiplier: 1 }] },
+      {
+        ...CONFIG,
+        projectTypes: [{ id: 'x', title: 'X', weeks: 40, costMultiplier: 1 }],
+      },
       { ...base, projectTypeId: 'x' },
     );
     expect(long.totalWeeks).toBe(TIMELINE_BOUNDS.max);
 
     const short = estimateProject(
-      { ...CONFIG, projectTypes: [{ id: 'x', title: 'X', weeks: 1, costMultiplier: 1 }] },
+      {
+        ...CONFIG,
+        projectTypes: [{ id: 'x', title: 'X', weeks: 1, costMultiplier: 1 }],
+      },
       { ...base, projectTypeId: 'x' },
     );
     expect(short.totalWeeks).toBe(TIMELINE_BOUNDS.min);

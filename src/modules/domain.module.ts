@@ -17,7 +17,27 @@ import { SeedModule } from './seed/seed.module';
 import { InsightModule } from './insights/insight.module';
 import { CalculatorConfigModule } from './calculator-config/calculator-config.module';
 import { EstimatesModule } from './estimates/estimates.module';
+import { AuditsModule } from './audits/audits.module';
 import { FaqModule } from './faq/faq.module';
+import { OrganizationModule } from './organization/organization.module';
+import { ClientProjectModule } from './client-project/client-project.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
+import { CounterModule } from './counter/counter.module';
+import { NotificationModule } from './notification/notification.module';
+import { ProjectUpdateModule } from './project-update/project-update.module';
+import { UpdateRequestModule } from './update-request/update-request.module';
+import { ContractModule } from './contract/contract.module';
+import { ChangeRequestModule } from './change-request/change-request.module';
+import { ApprovalModule } from './approval/approval.module';
+import { InvoiceModule } from './invoice/invoice.module';
+import { PaymentModule } from './payment/payment.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { FeatureModule } from './feature/feature.module';
+import { TaskModule } from './task/task.module';
+import { FileModule } from './file/file.module';
+import { CommentModule } from './comment/comment.module';
+import { TimeEntryModule } from './time-entry/time-entry.module';
 
 @Module({
   imports: [
@@ -68,7 +88,27 @@ import { FaqModule } from './faq/faq.module';
     InsightModule,
     CalculatorConfigModule,
     EstimatesModule,
+    AuditsModule,
     FaqModule,
+    OrganizationModule,
+    ClientProjectModule,
+    AuditLogModule,
+    CounterModule,
+    NotificationModule,
+    ProjectUpdateModule,
+    UpdateRequestModule,
+    ContractModule,
+    ChangeRequestModule,
+    ApprovalModule,
+    InvoiceModule,
+    PaymentModule,
+    AnalyticsModule,
+    DashboardModule,
+    FeatureModule,
+    TaskModule,
+    FileModule,
+    CommentModule,
+    TimeEntryModule,
   ],
 })
 export class DomainModule {}

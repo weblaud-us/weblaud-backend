@@ -1,4 +1,5 @@
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 
 export class HashUtil {
   private static readonly SALT_ROUNDS = 12;
@@ -11,12 +12,15 @@ export class HashUtil {
     return bcrypt.compare(password, hash);
   }
 
+  /**
+   * CSPRNG-backed (crypto.randomBytes), not Math.random() — Math.random()'s
+   * output is not cryptographically unpredictable and must never back a
+   * security token (invite tokens, password-reset tokens, session
+   * identifiers, ...). See UsersService's invite-token generation, which
+   * uses randomBytes directly for exactly this reason. hex encoding is used
+   * rather than an alphabet-indexed loop so the output has no modulo bias.
+   */
   static generateRandomToken(length: number = 32): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    for (let i = 0; i < length; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return token;
+    return randomBytes(length).toString('hex').slice(0, length);
   }
 }

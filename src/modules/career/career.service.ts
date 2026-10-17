@@ -3,6 +3,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
@@ -17,9 +18,50 @@ import { UpdateCareerDto } from './dto/update-career.dto';
 import { SubmitApplicationDto } from './dto/submit-application.dto';
 import { sanitizeCsvRow } from 'src/common/utils/csv.util';
 import { slugify } from 'src/common/utils/slugify.util';
+import { readStoredFile } from 'src/common/utils/stored-file-streamer.util';
+
+const EXTENSION_BY_MIME: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+    'docx',
+  'application/msword': 'doc',
+};
+
+/** Identifies the résumé formats the upload filter accepts by their file signature. */
+function sniffDocumentType(
+  buffer: Buffer,
+): { mime: string; ext: string } | undefined {
+  if (buffer.subarray(0, 4).toString('latin1') === '%PDF') {
+    return { mime: 'application/pdf', ext: 'pdf' };
+  }
+  // ZIP container — the only ZIP-based format resumes are accepted in is DOCX.
+  if (buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03) {
+    return {
+      mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ext: 'docx',
+    };
+  }
+  // OLE2 compound file — legacy .doc.
+  if (
+    buffer[0] === 0xd0 &&
+    buffer[1] === 0xcf &&
+    buffer[2] === 0x11 &&
+    buffer[3] === 0xe0
+  ) {
+    return { mime: 'application/msword', ext: 'doc' };
+  }
+  return undefined;
+}
+
+function extensionOf(filename?: string): string | undefined {
+  const match = filename?.match(/\.([a-z0-9]{1,5})$/i);
+  return match?.[1].toLowerCase();
+}
 
 @Injectable()
 export class CareerService {
+  private readonly logger = new Logger(CareerService.name);
+
   constructor(
     @InjectModel(Career.name) private careerModel: Model<Career>,
     @InjectModel(Application.name) private appModel: Model<Application>,
@@ -162,6 +204,8 @@ export class CareerService {
       careerId: new Types.ObjectId(careerId),
       ...dto,
       resumeUrl,
+      resumeFileName: resume.originalname,
+      resumeMimeType: resume.mimetype,
       status: 'new',
     });
 
@@ -187,9 +231,14 @@ export class CareerService {
         { label: 'Why interested', value: app.interestReason },
         { label: 'Cover letter', value: app.coverLetter },
         {
+          // Admin-panel link (login required), not the raw storage URL — that
+          // was public and downloaded as an extensionless file. See
+          // CareerController.resume.
           label: 'Résumé',
-          value: app.resumeUrl ? 'Download résumé' : undefined,
-          href: app.resumeUrl,
+          value: app.resumeUrl ? 'View résumé' : undefined,
+          href:
+            this.dashboardNotifier.adminUrl(`/applicants/${app._id}/resume`) ||
+            undefined,
         },
       ],
       // The applicants page reads ?email= as a filter, so this lands on the
@@ -209,6 +258,55 @@ export class CareerService {
 
     if (!app) throw new NotFoundException('Application not found');
     return app;
+  }
+
+  /**
+   * The CV bytes plus a usable filename and content type — see
+   * CareerController.resume for why this can't just be a link to resumeUrl.
+   * Applications from before resumeMimeType was recorded get their type
+   * sniffed from the file signature (the only formats the upload filter ever
+   * accepted are PDF, DOCX and DOC).
+   */
+  async getResumeFile(
+    id: string,
+  ): Promise<{ buffer: Buffer; contentType: string; filename: string }> {
+    const app = await this.appModel
+      .findById(id)
+      .select('name resumeUrl resumeFileName resumeMimeType')
+      .lean();
+    if (!app) throw new NotFoundException('Application not found');
+    if (!app.resumeUrl) {
+      throw new NotFoundException('This application has no résumé');
+    }
+
+    const buffer = await readStoredFile(
+      app.resumeUrl,
+      this.config,
+      this.logger,
+      'Résumé',
+    );
+
+    const sniffed = sniffDocumentType(buffer);
+    const contentType =
+      app.resumeMimeType && app.resumeMimeType !== 'application/octet-stream'
+        ? app.resumeMimeType
+        : (sniffed?.mime ?? 'application/octet-stream');
+    const extension =
+      extensionOf(app.resumeFileName) ??
+      sniffed?.ext ??
+      EXTENSION_BY_MIME[contentType] ??
+      'bin';
+
+    // ASCII-only, header-safe: this goes inside a quoted Content-Disposition.
+    const safeName =
+      (app.name ?? 'Applicant')
+        .normalize('NFKD')
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .slice(0, 80) || 'Applicant';
+
+    return { buffer, contentType, filename: `${safeName}-CV.${extension}` };
   }
 
   // ---------------------------------------------------
@@ -236,6 +334,13 @@ export class CareerService {
         '\\$&',
       );
       filter.email = new RegExp(escaped, 'i');
+    }
+
+    // Was previously unfilterable — the admin dashboard's "new applicants"
+    // count had to fetch up to 200 rows and filter status client-side,
+    // silently undercounting past that many.
+    if (query.status) {
+      filter.status = query.status;
     }
 
     if (query.startDate || query.endDate) {

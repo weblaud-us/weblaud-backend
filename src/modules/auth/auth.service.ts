@@ -10,6 +10,7 @@ import { MailService } from 'src/modules/mail/mail.service';
 import { LoginDto } from './dto/auth.dto';
 import { TokenService } from './tokens/token.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 
 /** Returned for every send-otp call so the response cannot be used to test whether an account exists. */
 const OTP_SENT_MESSAGE =
@@ -44,6 +45,7 @@ export class AuthService {
       user._id.toString(),
       await bcrypt.hash(tokenData.refreshToken, 10),
     );
+    await this.users.updateLastLogin(user._id.toString());
 
     return { user, ...tokenData };
   }
@@ -135,5 +137,47 @@ export class AuthService {
     await this.users.clearRefreshToken(user._id.toString());
 
     return { message: 'Password updated successfully' };
+  }
+
+  // CHANGE PASSWORD (in-app, requires the current password — see ChangePasswordDto)
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    return this.users.changePassword(userId, currentPassword, newPassword);
+  }
+
+  // ACCEPT INVITE
+  /**
+   * Completes an invite (client or staff): verifies the token from the
+   * email link, sets the chosen password, activates the account, and — like
+   * login — signs the user straight in rather than making them log in again
+   * right after setting a password.
+   */
+  async acceptInvite(dto: AcceptInviteDto) {
+    const invited = await this.users.verifyInviteToken(dto.uid, dto.token);
+    if (!invited) {
+      throw new BadRequestException('Invalid or expired invite link');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const user: any = await this.users.activateWithPassword(
+      dto.uid,
+      hashedPassword,
+    );
+
+    const tokenData = await this.tokens.signTokens(
+      user._id.toString(),
+      user.role,
+    );
+
+    await this.users.setRefreshToken(
+      user._id.toString(),
+      await bcrypt.hash(tokenData.refreshToken, 10),
+    );
+    await this.users.updateLastLogin(user._id.toString());
+
+    return { user, ...tokenData };
   }
 }

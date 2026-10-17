@@ -1,4 +1,7 @@
-export const parseFileSize = (value: string | number, fallback = 10 * 1024 * 1024): number => {
+export const parseFileSize = (
+  value: string | number,
+  fallback = 10 * 1024 * 1024,
+): number => {
   if (!value) return fallback;
 
   // If numeric, assume bytes

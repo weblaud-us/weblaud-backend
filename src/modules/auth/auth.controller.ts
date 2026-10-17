@@ -12,6 +12,8 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/auth.dto';
 import { SendOtpDto, VerifyOtpDto } from './dto/otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Public } from 'src/common/decorators/public.decorator';
@@ -48,6 +50,23 @@ export class AuthController {
     return this.auth.logout(user._id.toString());
   }
 
+  /**
+   * In-app password change for any authenticated account — admin included.
+   * Before this, changing the admin's own password required going through
+   * the public forgot-password/OTP flow, which is the wrong tool for
+   * "I'm already logged in and want a new password."
+   */
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async changePassword(@GetUser() user: any, @Body() dto: ChangePasswordDto) {
+    return await this.auth.changePassword(
+      user._id.toString(),
+      dto.currentPassword,
+      dto.newPassword,
+    );
+  }
+
   @Post('send-otp')
   @Public()
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
@@ -72,6 +91,18 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return await this.auth.resetPassword(dto);
+  }
+
+  /**
+   * Completes an invite link (client or staff). Same throttle tier as
+   * reset-password: this is the endpoint an attacker with a leaked/guessed
+   * uid would hammer to brute-force the token.
+   */
+  @Post('accept-invite')
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async acceptInvite(@Body() dto: AcceptInviteDto) {
+    return await this.auth.acceptInvite(dto);
   }
 
   @Post('refresh')

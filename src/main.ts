@@ -12,13 +12,19 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { clientContextMiddleware } from './common/utils/client-context.util';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
-  // 1. Pass NestExpressApplication generic to access Express specific methods
+  // 1. Pass NestExpressApplication generic to access Express specific methods.
+  // rawBody: true populates request.rawBody (a Buffer) on every request
+  // alongside the normal parsed body — the Stripe webhook handler needs the
+  // exact raw bytes to verify the signature; a re-serialized JSON body would
+  // not byte-match what Stripe signed and every event would be rejected.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
+    rawBody: true,
   });
 
   const configService = app.get(ConfigService);
@@ -34,6 +40,17 @@ async function bootstrap() {
   if (isProduction) {
     app.set('trust proxy', 1);
   }
+
+  // Stamps req.clientIp / req.clientUa — the real visitor behind the
+  // website's server-to-server calls. Must run before any guard (the
+  // throttler keys on it). See client-context.util.ts.
+  const internalSecret = configService.get<string>('internal.apiSecret');
+  if (isProduction && !internalSecret) {
+    logger.warn(
+      'INTERNAL_API_SECRET is not set — forwarded visitor IPs are ignored, so rate limits and contract-acceptance records see the website server instead of the visitor.',
+    );
+  }
+  app.use(clientContextMiddleware(internalSecret));
 
   if (isProduction) {
     app.use(helmet());

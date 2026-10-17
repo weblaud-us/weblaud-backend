@@ -138,6 +138,19 @@ export function validateEnv(config: Env): Env {
     );
   }
 
+  // --- Client portal deep links ---
+  // Same reasoning as ADMIN_BASE_URL: only enforced in production, since an
+  // unset value in dev just means invite emails carry a dead link instead of
+  // blocking boot over it.
+  const portalBaseUrl = isProduction
+    ? requireValue(config, 'PORTAL_URL', errors)
+    : str(config, 'PORTAL_URL');
+  if (portalBaseUrl && !/^https?:\/\/[^/\s]+(\/[^\s]*)?$/.test(portalBaseUrl)) {
+    errors.add(
+      `PORTAL_URL must be an absolute http(s) URL (got "${portalBaseUrl}")`,
+    );
+  }
+
   // --- Mail ---
   requireValue(config, 'MAIL_HOST', errors);
   requireValue(config, 'MAIL_USER', errors);
@@ -168,6 +181,21 @@ export function validateEnv(config: Env): Env {
     requireValue(config, 'AWS_ACCESS_KEY_ID', errors);
     requireValue(config, 'AWS_SECRET_ACCESS_KEY', errors);
     requireValue(config, 'AWS_S3_BUCKET', errors);
+  }
+
+  // --- Optional secrets: validated only when set ---
+  // Both are deliberately optional so the backend can ship before the website
+  // starts sending them (see the rollout notes in .env.example), but a value
+  // that IS set must be a real one — a short or placeholder INTERNAL_API_SECRET
+  // would let anyone forge the visitor IP the rate limiter trusts.
+  if (str(config, 'INTERNAL_API_SECRET')) {
+    requireSecret(config, 'INTERNAL_API_SECRET', errors);
+  }
+  const turnstileSecret = str(config, 'TURNSTILE_SECRET_KEY');
+  if (turnstileSecret && PLACEHOLDERS.has(turnstileSecret.toLowerCase())) {
+    errors.add(
+      'TURNSTILE_SECRET_KEY is still a placeholder — use the secret key from the Cloudflare Turnstile dashboard, or leave it empty',
+    );
   }
 
   errors.throwIfAny();

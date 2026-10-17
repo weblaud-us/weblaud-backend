@@ -11,10 +11,10 @@ export class ServicesService {
     @InjectModel(Service.name) private serviceModel: Model<ServiceDocument>,
   ) {}
 
-async create(dto: CreateServiceDto & { image?: string }) {
-  const service = new this.serviceModel(dto);
-  return service.save();
-}
+  async create(dto: CreateServiceDto & { image?: string }) {
+    const service = new this.serviceModel(dto);
+    return service.save();
+  }
 
   async findAll() {
     return this.serviceModel.find().sort({ createdAt: -1 });
@@ -26,13 +26,13 @@ async create(dto: CreateServiceDto & { image?: string }) {
     return service;
   }
 
-async update(id: string, dto: UpdateServiceDto & { image?: string }) {
-  const service = await this.serviceModel.findByIdAndUpdate(id, dto, {
-    new: true,
-  });
-  if (!service) throw new NotFoundException('Service not found');
-  return service;
-}
+  async update(id: string, dto: UpdateServiceDto & { image?: string }) {
+    const service = await this.serviceModel.findByIdAndUpdate(id, dto, {
+      new: true,
+    });
+    if (!service) throw new NotFoundException('Service not found');
+    return service;
+  }
   async remove(id: string) {
     const service = await this.serviceModel.findByIdAndDelete(id);
     if (!service) throw new NotFoundException('Service not found');

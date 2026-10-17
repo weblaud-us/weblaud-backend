@@ -66,10 +66,7 @@ export class TeamService {
   }
 
   async findAdmin() {
-    return this.teamModel
-      .find()
-      .sort({ order: 1, createdAt: -1 })
-      .lean();
+    return this.teamModel.find().sort({ order: 1, createdAt: -1 }).lean();
   }
 
   async findById(id: string) {
