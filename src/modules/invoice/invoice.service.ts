@@ -627,7 +627,9 @@ export class InvoiceService {
 
     if (actor.role === Role.USER) {
       query = { organization: actor.organization };
-    } else if (actor.role === Role.MANAGER) {
+    } else if (actor.role !== Role.ADMIN) {
+      // Staff — and any other non-admin role, e.g. EDITOR — only see their
+      // own projects; never fall through to the unfiltered admin query.
       const myProjects = await this.projects.findForPortalUser(actor);
       query = { project: { $in: myProjects.map((p) => p._id) } };
     }

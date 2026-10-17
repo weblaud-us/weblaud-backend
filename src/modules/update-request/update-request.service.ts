@@ -76,6 +76,24 @@ export class UpdateRequestService {
   }
 
   /**
+   * Open questions across the given projects (undefined = every project,
+   * for an admin). The caller has already worked out which projects the
+   * actor may see — the portal dashboard only asks for the ones the actor
+   * manages — so this does no access check.
+   */
+  async findOpenForProjects(projectIds?: string[]) {
+    if (projectIds && projectIds.length === 0) return [];
+    const query: Record<string, unknown> = { status: UpdateRequestStatus.OPEN };
+    if (projectIds) query.project = { $in: projectIds };
+    return this.model
+      .find(query)
+      .sort({ createdAt: -1 })
+      .populate('project', 'name')
+      .populate('requestedBy', REQUESTER_PICK)
+      .lean();
+  }
+
+  /**
    * The PM closing it means "handled" (status → answered, stamped who/when
    * — the client sees their question was actually addressed, not just
    * dismissed). The original requester closing their own is just tidying up

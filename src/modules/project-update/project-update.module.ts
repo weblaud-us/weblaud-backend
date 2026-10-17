@@ -22,5 +22,6 @@ import { AuditLogModule } from 'src/modules/audit-log/audit-log.module';
   ],
   controllers: [ProjectUpdateController, PortalUpdateController],
   providers: [ProjectUpdateService],
+  exports: [ProjectUpdateService],
 })
 export class ProjectUpdateModule {}

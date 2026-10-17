@@ -20,5 +20,6 @@ import { NotificationModule } from 'src/modules/notification/notification.module
   ],
   controllers: [UpdateRequestController, PortalUpdateRequestController],
   providers: [UpdateRequestService],
+  exports: [UpdateRequestService],
 })
 export class UpdateRequestModule {}

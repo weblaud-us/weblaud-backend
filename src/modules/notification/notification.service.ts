@@ -153,6 +153,15 @@ export class NotificationService {
     return this.model.find(query).sort({ createdAt: -1 }).limit(100).lean();
   }
 
+  /** Unread rows of one type (e.g. 'comment_mention') — the portal inbox's "mentions" group. */
+  async findUnreadByType(userId: string, type: string) {
+    return this.model
+      .find({ user: userId, type, read: false })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+  }
+
   /** Cheap poll target for the portal bell badge — see PortalNotificationsCount route. */
   async countUnread(userId: string): Promise<number> {
     return this.model.countDocuments({ user: userId, read: false });

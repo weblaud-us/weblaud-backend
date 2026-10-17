@@ -572,4 +572,32 @@ describe('InvoiceService — payment ledger (Findings 1.1, 1.3, 1.5, 1.6, 1.8)',
       await expect(service.getBalanceDue(INVOICE_ID)).resolves.toBe(0);
     });
   });
+
+  describe('findForPortalUser scoping', () => {
+    function stubFind() {
+      const chain = {
+        sort: jest.fn().mockReturnThis(),
+        populate: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([]),
+      };
+      model.find.mockReturnValue(chain);
+    }
+
+    it('never gives a non-admin, non-client role (e.g. EDITOR) the unfiltered list', async () => {
+      stubFind();
+      (projects as any).findForPortalUser = jest
+        .fn()
+        .mockResolvedValue([{ _id: 'p1' }]);
+
+      await service.findForPortalUser({ _id: 'u1', role: 'editor' as any });
+
+      expect(model.find).toHaveBeenCalledWith({ project: { $in: ['p1'] } });
+    });
+
+    it('gives an admin every invoice', async () => {
+      stubFind();
+      await service.findForPortalUser({ _id: 'u1', role: 'admin' as any });
+      expect(model.find).toHaveBeenCalledWith({});
+    });
+  });
 });

@@ -204,6 +204,26 @@ export class ChangeRequestService {
   }
 
   /**
+   * Flat, cross-project list scoped to what `actor` can see — mirrors
+   * ApprovalService.findForPortalUser (change requests have no
+   * `organization` of their own, so every non-admin role is scoped via
+   * their visible project ids). Feeds the portal dashboard's inbox.
+   */
+  async findForPortalUser(actor: Actor, statuses?: ChangeRequestStatus[]) {
+    const query: Record<string, unknown> = {};
+    if (statuses?.length) query.status = { $in: statuses };
+    if (actor.role !== Role.ADMIN) {
+      const myProjects = await this.projects.findForPortalUser(actor);
+      query.project = { $in: myProjects.map((p) => p._id) };
+    }
+    return this.model
+      .find(query)
+      .sort({ createdAt: -1 })
+      .populate('project', 'name')
+      .lean();
+  }
+
+  /**
    * Cross-project admin view — every change request, regardless of project.
    * Only a client_admin can decide one (see assertCanDecide); this is
    * read-only visibility for the agency into what's awaiting a client.
