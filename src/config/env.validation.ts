@@ -198,6 +198,13 @@ export function validateEnv(config: Env): Env {
     );
   }
 
+  const sentryDsn = str(config, 'SENTRY_DSN');
+  if (sentryDsn && !/^https:\/\/[^@\s]+@[^\s/]+\/\d+$/.test(sentryDsn)) {
+    errors.add(
+      'SENTRY_DSN does not look like a Sentry DSN (https://<key>@<host>/<project-id>) — copy it from Sentry → Project settings → Client Keys, or leave it empty',
+    );
+  }
+
   errors.throwIfAny();
 
   return config;

@@ -1,3 +1,5 @@
+// Must stay the first import — Sentry hooks into Nest/Express as they load.
+import './instrument';
 import { NestFactory } from '@nestjs/core';
 import {
   ValidationPipe,

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { isArray } from 'class-validator';
+import * as Sentry from '@sentry/nestjs';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -65,6 +66,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       `${request.method} ${request.url} ${status}`,
       exception instanceof Error ? exception.stack : JSON.stringify(exception),
     );
+
+    // Only real faults go to Sentry — 4xx is the caller's mistake, not ours.
+    // A no-op unless SENTRY_DSN is set (see src/instrument.ts).
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      Sentry.captureException(exception);
+    }
 
     // The full detail is already in the log line above; the client gets none of
     // it. Client errors (4xx) keep their message — those are actionable and

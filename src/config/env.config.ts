@@ -128,4 +128,14 @@ export const envConfig = () => ({
      */
     secretKey: process.env.TURNSTILE_SECRET_KEY,
   },
+
+  sentry: {
+    /**
+     * Error monitoring. Optional: unset means no SDK at all. Read directly
+     * by src/instrument.ts, which runs before this config exists — listed
+     * here so validation and the config shape document it.
+     */
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.SENTRY_ENVIRONMENT,
+  },
 });
