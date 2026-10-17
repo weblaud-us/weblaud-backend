@@ -69,6 +69,7 @@ export class TaskService {
       clientVisible: dto.clientVisible,
       order,
       createdBy: actor._id,
+      completedAt: status === TaskStatus.DONE ? new Date() : undefined,
     });
 
     if (dto.assignee) {
@@ -124,8 +125,17 @@ export class TaskService {
   ) {
     const task = await this.findAccessible(id, actor);
     const previousAssignee = task.assignee?.toString();
+    const previousStatus = task.status;
 
     Object.assign(task, dto);
+    // completedAt marks when the task *entered* done — the weekly digest's
+    // "completed this week" — so it's only stamped on the transition, and
+    // cleared if the task is reopened.
+    if (task.status === TaskStatus.DONE && previousStatus !== TaskStatus.DONE) {
+      task.completedAt = new Date();
+    } else if (task.status !== TaskStatus.DONE) {
+      task.completedAt = undefined;
+    }
     await task.save();
 
     if (dto.assignee && dto.assignee !== previousAssignee) {
@@ -180,12 +190,28 @@ export class TaskService {
     const [projectId] = projectIds;
     await this.assertStaffOnProject(projectId, actor);
 
+    // A drag into Done stamps completedAt unless the task was already done
+    // (a reorder within the column keeps the original time); a drag out of
+    // Done clears it. Same rule as update().
     await Promise.all(
       dto.positions.map((p) =>
-        this.model.updateOne(
-          { _id: p.id },
-          { status: p.status, order: p.order },
-        ),
+        p.status === TaskStatus.DONE
+          ? this.model.updateOne({ _id: p.id }, [
+              {
+                $set: {
+                  status: p.status,
+                  order: p.order,
+                  completedAt: { $ifNull: ['$completedAt', '$$NOW'] },
+                },
+              },
+            ])
+          : this.model.updateOne(
+              { _id: p.id },
+              {
+                $set: { status: p.status, order: p.order },
+                $unset: { completedAt: 1 },
+              },
+            ),
       ),
     );
 

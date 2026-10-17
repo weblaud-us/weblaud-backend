@@ -35,6 +35,10 @@ export class EmailPreferences {
   /** @mentions in a comment thread (Phase 7) — see CommentService.notifyMentions. */
   @Prop({ default: true })
   mentions: boolean;
+
+  /** The Monday summary of a project's week — see ProjectDigestService. */
+  @Prop({ default: true })
+  digest: boolean;
 }
 export const EmailPreferencesSchema =
   SchemaFactory.createForClass(EmailPreferences);

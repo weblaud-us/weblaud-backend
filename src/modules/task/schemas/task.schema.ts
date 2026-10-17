@@ -57,6 +57,13 @@ export class Task {
   @Prop({ default: true })
   clientVisible: boolean;
 
+  // When the task last moved into DONE; cleared if it's reopened. Set by
+  // TaskService (create/update/reorder), read by the weekly client digest.
+  // Tasks finished before this field existed have none — they simply never
+  // show up as "completed this week".
+  @Prop()
+  completedAt?: Date;
+
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   createdBy: Types.ObjectId;
 }

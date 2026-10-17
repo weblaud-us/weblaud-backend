@@ -18,7 +18,8 @@ export type EmailCategory =
   | 'approvals'
   | 'changeRequests'
   | 'updates'
-  | 'mentions';
+  | 'mentions'
+  | 'digest';
 
 export interface CreateNotificationInput {
   user: string | Types.ObjectId;

@@ -25,4 +25,8 @@ export class UpdateEmailPreferencesDto {
   @IsOptional()
   @IsBoolean()
   mentions?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  digest?: boolean;
 }

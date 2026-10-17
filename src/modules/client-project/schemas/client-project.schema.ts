@@ -124,6 +124,12 @@ export class ClientProject {
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
   createdBy: Types.ObjectId;
+
+  // When the weekly client digest last went out for this project. Claimed
+  // atomically before sending (ProjectDigestService), so a restart or a
+  // second instance can't send the same week twice.
+  @Prop()
+  lastDigestAt?: Date;
 }
 
 export const ClientProjectSchema = SchemaFactory.createForClass(ClientProject);

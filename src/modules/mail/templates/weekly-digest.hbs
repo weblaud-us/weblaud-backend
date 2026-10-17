@@ -1,0 +1,74 @@
+<div style="font-family: Arial, sans-serif; padding: 20px; color: #111827; max-width: 600px;">
+  <h2 style="margin: 0 0 16px; color: #0A84FF;">Your week on {{projectName}}</h2>
+
+  <p>Hi {{firstName}},</p>
+  <p>Here's what happened on {{projectName}} over the last seven days.</p>
+
+  {{#if waiting.length}}
+  <div style="margin: 20px 0; padding: 14px 16px; border: 1px solid #bfdbfe; background: #eff6ff; border-radius: 8px;">
+    <h3 style="margin: 0 0 8px; font-size: 15px; color: #1d4ed8;">Waiting on you</h3>
+    <ul style="margin: 0; padding-left: 18px;">
+      {{#each waiting}}
+      <li style="margin: 4px 0;">{{title}}{{#if meta}} <span style="color: #6b7280;">· {{meta}}</span>{{/if}}</li>
+      {{/each}}
+    </ul>
+  </div>
+  {{/if}}
+
+  {{#if completed.length}}
+  <h3 style="margin: 20px 0 8px; font-size: 15px;">Completed</h3>
+  <ul style="margin: 0; padding-left: 18px;">
+    {{#each completed}}
+    <li style="margin: 4px 0;">{{title}}{{#if meta}} <span style="color: #6b7280;">· {{meta}}</span>{{/if}}</li>
+    {{/each}}
+  </ul>
+  {{/if}}
+
+  {{#if updates.length}}
+  <h3 style="margin: 20px 0 8px; font-size: 15px;">New updates from your team</h3>
+  <ul style="margin: 0; padding-left: 18px;">
+    {{#each updates}}
+    <li style="margin: 4px 0;">{{title}}</li>
+    {{/each}}
+  </ul>
+  {{/if}}
+
+  {{#if files.length}}
+  <h3 style="margin: 20px 0 8px; font-size: 15px;">Files shared with you</h3>
+  <ul style="margin: 0; padding-left: 18px;">
+    {{#each files}}
+    <li style="margin: 4px 0;">{{title}}</li>
+    {{/each}}
+  </ul>
+  {{/if}}
+
+  {{#if dueSoon.length}}
+  <h3 style="margin: 20px 0 8px; font-size: 15px;">Coming up</h3>
+  <ul style="margin: 0; padding-left: 18px;">
+    {{#each dueSoon}}
+    <li style="margin: 4px 0;">{{title}}{{#if meta}} <span style="color: #6b7280;">· {{meta}}</span>{{/if}}</li>
+    {{/each}}
+  </ul>
+  {{/if}}
+
+  {{#if actionUrl}}
+  <p style="margin: 28px 0;">
+    <a
+      href="{{actionUrl}}"
+      style="background: #0A84FF; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;"
+    >
+      Open your project
+    </a>
+  </p>
+  <p style="color: #6b7280; font-size: 13px;">If the button doesn't work, paste this into your browser: {{actionUrl}}</p>
+  {{/if}}
+
+  <br/>
+  <strong>WebLaud Team</strong>
+
+  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0 14px;" />
+  <p style="font-size: 12px; color: #9ca3af;">
+    You're receiving this weekly summary because you're on this project's client team.
+    {{#if unsubscribeUrl}}<a href="{{unsubscribeUrl}}" style="color: #6b7280;">Unsubscribe from weekly summaries</a>.{{/if}}
+  </p>
+</div>

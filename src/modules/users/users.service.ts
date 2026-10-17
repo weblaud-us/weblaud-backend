@@ -30,6 +30,7 @@ const EMAIL_CATEGORIES = [
   'changeRequests',
   'updates',
   'mentions',
+  'digest',
 ] as const;
 type EmailCategory = (typeof EMAIL_CATEGORIES)[number];
 
@@ -291,6 +292,33 @@ export class UsersService {
       const existing = byOrg.get(orgId);
       if (existing) existing.push(admin);
       else byOrg.set(orgId, [admin]);
+    }
+    return byOrg;
+  }
+
+  /**
+   * Every active client user (admin or viewer) across the given orgs who
+   * hasn't opted out of the weekly project digest, keyed by org id — one
+   * query for ProjectDigestService's whole Monday run. A missing preference
+   * counts as opted in (accounts created before `digest` existed).
+   */
+  async findDigestRecipientsForOrgs(organizationIds: string[]) {
+    const users = await this.userModel
+      .find({
+        organization: { $in: organizationIds },
+        role: Role.USER,
+        isActive: true,
+        'emailPreferences.digest': { $ne: false },
+      })
+      .select('_id firstName email organization')
+      .lean();
+
+    const byOrg = new Map<string, typeof users>();
+    for (const user of users) {
+      const orgId = user.organization!.toString();
+      const existing = byOrg.get(orgId);
+      if (existing) existing.push(user);
+      else byOrg.set(orgId, [user]);
     }
     return byOrg;
   }

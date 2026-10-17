@@ -38,6 +38,7 @@ import { TaskModule } from './task/task.module';
 import { FileModule } from './file/file.module';
 import { CommentModule } from './comment/comment.module';
 import { TimeEntryModule } from './time-entry/time-entry.module';
+import { DigestModule } from './digest/digest.module';
 
 @Module({
   imports: [
@@ -109,6 +110,7 @@ import { TimeEntryModule } from './time-entry/time-entry.module';
     FileModule,
     CommentModule,
     TimeEntryModule,
+    DigestModule,
   ],
 })
 export class DomainModule {}
