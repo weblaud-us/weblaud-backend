@@ -21,6 +21,7 @@ import {
   ProjectAccessActor,
 } from 'src/common/utils/project-access.util';
 import { Role } from 'src/common/enum/user.role.enum';
+import { portalProjectLink } from 'src/common/utils/portal-links.util';
 
 const REQUESTER_PICK = 'firstName lastName avatar';
 
@@ -57,7 +58,7 @@ export class UpdateRequestService {
       type: 'update_requested',
       title: `A client asked for an update`,
       body: dto.message,
-      link: `/portal/projects/${projectId}`,
+      link: portalProjectLink(projectId, 'questions'),
     });
 
     return request;
@@ -141,7 +142,7 @@ export class UpdateRequestService {
         type: 'update_request_answered',
         title: `Your update request was answered`,
         body: dto.response,
-        link: `/portal/projects/${request.project}`,
+        link: portalProjectLink(request.project, 'questions'),
       });
     } else {
       request.status = UpdateRequestStatus.CLOSED;

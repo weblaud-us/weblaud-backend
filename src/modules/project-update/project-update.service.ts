@@ -24,6 +24,7 @@ import {
   projectAuthorRole,
 } from 'src/common/utils/project-access.util';
 import { Role } from 'src/common/enum/user.role.enum';
+import { portalProjectLink } from 'src/common/utils/portal-links.util';
 
 const AUTHOR_PICK = 'firstName lastName avatar title role';
 
@@ -86,7 +87,7 @@ export class ProjectUpdateService {
         type: 'project_update',
         title: `New update on your project`,
         body: dto.title,
-        link: `/portal/projects/${projectId}`,
+        link: portalProjectLink(projectId, 'updates'),
         email: {
           category: 'updates',
           subject: `New update on ${subject.name}`,
@@ -100,7 +101,7 @@ export class ProjectUpdateService {
         type: 'update_pending_review',
         title: `An update is waiting for your review`,
         body: dto.title,
-        link: `/portal/projects/${projectId}`,
+        link: portalProjectLink(projectId, 'updates'),
       });
     }
 
@@ -166,7 +167,7 @@ export class ProjectUpdateService {
         type: 'update_pending_review',
         title: `An update was resubmitted for your review`,
         body: update.title,
-        link: `/portal/projects/${update.project}`,
+        link: portalProjectLink(update.project, 'updates'),
       });
     }
 
@@ -212,7 +213,7 @@ export class ProjectUpdateService {
       type: 'project_update',
       title: `New update on your project`,
       body: update.title,
-      link: `/portal/projects/${update.project}`,
+      link: portalProjectLink(update.project, 'updates'),
       email: {
         category: 'updates',
         subject: `New update on ${subject.name}`,
@@ -225,7 +226,7 @@ export class ProjectUpdateService {
       type: 'update_approved',
       title: `Your update was approved`,
       body: update.title,
-      link: `/portal/projects/${update.project}`,
+      link: portalProjectLink(update.project, 'updates'),
     });
 
     await this.auditLog.record({
@@ -271,7 +272,7 @@ export class ProjectUpdateService {
       type: 'update_rejected',
       title: `Your update needs changes`,
       body: dto.reviewNote,
-      link: `/portal/projects/${update.project}`,
+      link: portalProjectLink(update.project, 'updates'),
     });
 
     await this.auditLog.record({

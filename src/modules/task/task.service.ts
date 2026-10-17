@@ -16,6 +16,7 @@ import {
   ProjectAccessActor,
 } from 'src/common/utils/project-access.util';
 import { Role } from 'src/common/enum/user.role.enum';
+import { portalProjectLink } from 'src/common/utils/portal-links.util';
 
 const ASSIGNEE_PICK = 'firstName lastName avatar title role';
 
@@ -75,7 +76,7 @@ export class TaskService {
         user: dto.assignee,
         type: 'task_assigned',
         title: `You were assigned: ${task.title}`,
-        link: `/portal/projects/${projectId}/tasks`,
+        link: portalProjectLink(projectId, 'tasks'),
       });
     }
 
@@ -132,7 +133,7 @@ export class TaskService {
         user: dto.assignee,
         type: 'task_assigned',
         title: `You were assigned: ${task.title}`,
-        link: `/portal/projects/${task.project}/tasks`,
+        link: portalProjectLink(task.project, 'tasks'),
       });
     }
 

@@ -26,6 +26,7 @@ import {
 } from 'src/common/utils/project-access.util';
 import { Role } from 'src/common/enum/user.role.enum';
 import { OrgRole } from 'src/common/enum/org-role.enum';
+import { portalProjectLink } from 'src/common/utils/portal-links.util';
 
 interface Actor extends ProjectAccessActor {
   orgRole?: OrgRole;
@@ -85,7 +86,7 @@ export class ChangeRequestService {
       type: 'change_request_quoted',
       title: `New change request: ${changeRequest.title}`,
       body: `${dto.priceAmount} ${currency} — awaiting your approval.`,
-      link: `/portal/projects/${projectId}/change-requests`,
+      link: portalProjectLink(projectId, 'changes'),
       email: {
         category: 'changeRequests',
         subject: `New change request: ${changeRequest.title}`,
@@ -140,7 +141,7 @@ export class ChangeRequestService {
       type: 'change_request_requested',
       title: `A client requested new scope: ${changeRequest.title}`,
       body: "Price it from the project's Change requests tab.",
-      link: `/portal/projects/${projectId}/change-requests`,
+      link: portalProjectLink(projectId, 'changes'),
     });
 
     return changeRequest;
@@ -175,7 +176,7 @@ export class ChangeRequestService {
       type: 'change_request_quoted',
       title: `Your scope request was priced: ${changeRequest.title}`,
       body: `${dto.priceAmount} ${currency} — awaiting your approval.`,
-      link: `/portal/projects/${changeRequest.project}/change-requests`,
+      link: portalProjectLink(changeRequest.project, 'changes'),
       email: {
         category: 'changeRequests',
         subject: `Your scope request was priced: ${changeRequest.title}`,
@@ -312,7 +313,7 @@ export class ChangeRequestService {
       // a manager gets redirected out of /cpadmin entirely (admin-only).
       // The project's own Invoices tab shows drafts too, so it's reachable
       // by whichever role they actually have.
-      link: `/portal/projects/${changeRequest.project}/invoices`,
+      link: portalProjectLink(changeRequest.project, 'invoices'),
     });
 
     await this.auditLog.record({
@@ -348,7 +349,7 @@ export class ChangeRequestService {
       type: 'change_request_rejected',
       title: `Change request rejected: ${changeRequest.title}`,
       body: dto.reason,
-      link: `/portal/projects/${changeRequest.project}/change-requests`,
+      link: portalProjectLink(changeRequest.project, 'changes'),
     });
 
     await this.auditLog.record({

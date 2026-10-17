@@ -22,6 +22,7 @@ import { OrgRole } from 'src/common/enum/org-role.enum';
 import { siteUrl } from 'src/common/utils/site-url.util';
 import { AuditLogService } from 'src/modules/audit-log/audit-log.service';
 import { DashboardNotifierService } from 'src/modules/mail/dashboard-notifier.service';
+import { portalProjectLink } from 'src/common/utils/portal-links.util';
 
 interface Actor extends ProjectAccessActor {
   orgRole?: OrgRole;
@@ -118,7 +119,7 @@ export class PaymentService {
       throw new BadRequestException('This invoice has nothing left to pay');
     }
 
-    const returnPath = `/portal/projects/${invoice.project.toString()}/invoices`;
+    const returnPath = portalProjectLink(invoice.project.toString(), 'invoices');
     const successUrl = siteUrl(this.portalBaseUrl, `${returnPath}?paid=1`);
     const cancelUrl = siteUrl(this.portalBaseUrl, `${returnPath}?cancelled=1`);
     if (!successUrl || !cancelUrl) {

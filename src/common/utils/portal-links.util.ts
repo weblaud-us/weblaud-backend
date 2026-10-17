@@ -19,18 +19,24 @@ export type PortalProjectSection =
   | 'invoices'
   | 'contract';
 
+/**
+ * The portal's six top-level tabs (Overview, Work, Updates, Files,
+ * Decisions, Billing) and their sub-pages. Pre-2026-10 links
+ * (/tasks, /approvals, /change-requests, /requests, /invoices, /contract,
+ * /discussion) redirect on the site — routes/portal/projects.$id.legacy.ts.
+ */
 const SECTION_PATHS: Record<PortalProjectSection, string> = {
   overview: '',
-  tasks: '/tasks',
-  timeline: '/timeline',
+  tasks: '/work/tasks',
+  timeline: '/work/timeline',
   updates: '/updates',
-  discussion: '/discussion',
+  discussion: '/updates/discussion',
   files: '/files',
-  approvals: '/approvals',
-  changes: '/change-requests',
-  questions: '/requests',
-  invoices: '/invoices',
-  contract: '/contract',
+  approvals: '/decisions/approvals',
+  changes: '/decisions/changes',
+  questions: '/decisions/questions',
+  invoices: '/billing/invoices',
+  contract: '/billing/contract',
 };
 
 /** Site path for one section of a project's portal workspace. */

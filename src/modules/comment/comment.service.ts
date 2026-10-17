@@ -26,6 +26,7 @@ import {
   ProjectAccessActor,
 } from 'src/common/utils/project-access.util';
 import { Role } from 'src/common/enum/user.role.enum';
+import { portalProjectLink } from 'src/common/utils/portal-links.util';
 
 const AUTHOR_PICK = 'firstName lastName avatar title role';
 
@@ -357,11 +358,11 @@ export class CommentService {
 
   private threadLink(comment: CommentDocument): string {
     if (comment.subjectType === CommentSubjectType.TASK) {
-      return `/portal/projects/${comment.project}/tasks`;
+      return portalProjectLink(comment.project, 'tasks');
     }
     if (comment.subjectType === CommentSubjectType.FILE) {
-      return `/portal/projects/${comment.project}/files`;
+      return portalProjectLink(comment.project, 'files');
     }
-    return `/portal/projects/${comment.project}/discussion`;
+    return portalProjectLink(comment.project, 'discussion');
   }
 }

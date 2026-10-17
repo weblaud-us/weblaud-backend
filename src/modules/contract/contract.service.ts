@@ -29,6 +29,7 @@ import {
   idsMatch,
 } from 'src/common/utils/project-access.util';
 import { streamStoredFile } from 'src/common/utils/stored-file-streamer.util';
+import { portalProjectLink } from 'src/common/utils/portal-links.util';
 
 interface PortalActor {
   _id: string;
@@ -129,7 +130,7 @@ export class ContractService {
         // its project's Contract tab. Org-level contracts (no project) can
         // only be pointed at the portal home.
         link: contract.project
-          ? `/portal/projects/${contract.project.toString()}/contract`
+          ? portalProjectLink(contract.project.toString(), 'contract')
           : '/portal',
         email: {
           category: 'contracts',

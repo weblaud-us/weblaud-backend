@@ -23,6 +23,7 @@ import {
 } from 'src/common/utils/project-access.util';
 import { Role } from 'src/common/enum/user.role.enum';
 import { OrgRole } from 'src/common/enum/org-role.enum';
+import { portalProjectLink } from 'src/common/utils/portal-links.util';
 
 interface Actor extends ProjectAccessActor {
   orgRole?: OrgRole;
@@ -55,7 +56,7 @@ export class ApprovalService {
     await this.notifications.notifyMany(clientIds, {
       type: 'approval_requested',
       title: `Approval needed: ${approval.title}`,
-      link: `/portal/projects/${projectId}/approvals`,
+      link: portalProjectLink(projectId, 'approvals'),
       email: {
         category: 'approvals',
         subject: `Approval needed: ${approval.title}`,
@@ -165,7 +166,7 @@ export class ApprovalService {
       user: approval.requestedBy,
       type: 'approval_approved',
       title: `Approved: ${approval.title}`,
-      link: `/portal/projects/${approval.project}/approvals`,
+      link: portalProjectLink(approval.project, 'approvals'),
     });
 
     await this.auditLog.record({
@@ -196,7 +197,7 @@ export class ApprovalService {
       type: 'approval_rejected',
       title: `Rejected: ${approval.title}`,
       body: dto.comment,
-      link: `/portal/projects/${approval.project}/approvals`,
+      link: portalProjectLink(approval.project, 'approvals'),
     });
 
     await this.auditLog.record({

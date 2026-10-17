@@ -248,7 +248,7 @@ describe('PaymentService', () => {
       const args = stripe.checkout.sessions.create.mock.calls[0][0];
       expect(args.line_items[0].price_data.unit_amount).toBe(40000);
       expect(args.success_url).toBe(
-        `https://weblaud.com/portal/projects/${PROJECT_ID}/invoices?paid=1`,
+        `https://weblaud.com/portal/projects/${PROJECT_ID}/billing/invoices?paid=1`,
       );
     });
 

@@ -158,7 +158,7 @@ describe('buildSummary', () => {
     expect(summary.pendingApprovals.items).toHaveLength(5);
     // An unpopulated project id still produces a link.
     expect(summary.pendingApprovals.items[0].link).toBe(
-      `/portal/projects/${P1}/approvals`,
+      `/portal/projects/${P1}/decisions/approvals`,
     );
   });
 
