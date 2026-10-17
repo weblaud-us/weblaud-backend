@@ -39,11 +39,15 @@ export class ProjectUpdateService {
   ) {}
 
   /**
-   * A PM (or admin) posting publishes immediately and moves project.progress
-   * right away. A developer's post starts PENDING_REVIEW — nothing about it
-   * (including any progressValue) touches the project or the client's view
-   * until a PM approves it. This is the one rule the whole Developer → PM →
-   * Client flow rests on.
+   * A PM (or admin) posting publishes immediately. A developer's post starts
+   * PENDING_REVIEW — nothing about it reaches the client's view until a PM
+   * approves it. This is the one rule the whole Developer → PM → Client flow
+   * rests on.
+   *
+   * An update's progressValue is narrative only ("PM estimate: 60%") and
+   * never writes project.progress — that comes from the task board alone
+   * (TaskService.recomputeProgress), so a client never sees it go backwards
+   * because an update and the board disagreed.
    */
   async create(
     projectId: string,
@@ -77,9 +81,6 @@ export class ProjectUpdateService {
     });
 
     if (publishNow) {
-      if (dto.progressValue !== undefined) {
-        await this.clientProjects.applyProgress(projectId, dto.progressValue);
-      }
       const clientIds = await this.clientProjects.getClientUserIds(
         subject.organization.toString(),
       );
@@ -175,7 +176,7 @@ export class ProjectUpdateService {
     return update;
   }
 
-  /** PM (or admin) only. Publishes, applies progressValue, and notifies both the client org and the developer whose work it was. */
+  /** PM (or admin) only. Publishes and notifies both the client org and the developer whose work it was. */
   async approve(updateId: string, actor: ProjectAccessActor) {
     const update = await this.model.findById(updateId);
     if (!update) throw new NotFoundException('Update not found');
@@ -198,13 +199,6 @@ export class ProjectUpdateService {
     update.reviewedBy = actor._id as any;
     update.reviewedAt = new Date();
     await update.save();
-
-    if (update.progressValue !== undefined) {
-      await this.clientProjects.applyProgress(
-        update.project.toString(),
-        update.progressValue,
-      );
-    }
 
     const clientIds = await this.clientProjects.getClientUserIds(
       subject.organization.toString(),

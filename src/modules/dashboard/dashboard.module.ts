@@ -1,6 +1,24 @@
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 import { PortalDashboardController } from './portal-dashboard.controller';
 import { PortalDashboardService } from './portal-dashboard.service';
+import { ProjectActivityService } from './project-activity.service';
+import {
+  ProjectUpdate,
+  ProjectUpdateSchema,
+} from 'src/modules/project-update/schemas/project-update.schema';
+import {
+  ProjectFile,
+  ProjectFileSchema,
+} from 'src/modules/file/schemas/project-file.schema';
+import {
+  Approval,
+  ApprovalSchema,
+} from 'src/modules/approval/schemas/approval.schema';
+import {
+  Invoice,
+  InvoiceSchema,
+} from 'src/modules/invoice/schemas/invoice.schema';
 import { ContractModule } from 'src/modules/contract/contract.module';
 import { ApprovalModule } from 'src/modules/approval/approval.module';
 import { InvoiceModule } from 'src/modules/invoice/invoice.module';
@@ -12,6 +30,13 @@ import { ClientProjectModule } from 'src/modules/client-project/client-project.m
 
 @Module({
   imports: [
+    // Read-only, for ProjectActivityService's recent-activity merge.
+    MongooseModule.forFeature([
+      { name: ProjectUpdate.name, schema: ProjectUpdateSchema },
+      { name: ProjectFile.name, schema: ProjectFileSchema },
+      { name: Approval.name, schema: ApprovalSchema },
+      { name: Invoice.name, schema: InvoiceSchema },
+    ]),
     ContractModule,
     ApprovalModule,
     InvoiceModule,
@@ -22,7 +47,7 @@ import { ClientProjectModule } from 'src/modules/client-project/client-project.m
     ClientProjectModule,
   ],
   controllers: [PortalDashboardController],
-  providers: [PortalDashboardService],
+  providers: [PortalDashboardService, ProjectActivityService],
   exports: [PortalDashboardService],
 })
 export class DashboardModule {}

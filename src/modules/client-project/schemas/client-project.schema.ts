@@ -112,12 +112,10 @@ export class ClientProject {
   // done/total across the project's tasks) after every task create/update/
   // delete/reorder — see TaskService.recomputeProgress and
   // ClientProjectService.applyProgress. A project with no tasks yet just
-  // stays at whatever it was (0 for a new one). Also nudged directly by a
-  // published project update that carries a progressValue
-  // (ProjectUpdateService) — that's a separate, narrative "here's roughly
-  // where we are" signal from staff and is intentionally left alone; the two
-  // simply both write the same field, and the next task-board change is
-  // authoritative again.
+  // stays at whatever it was (0 for a new one). The task board is the ONLY
+  // writer: a project update's progressValue is narrative and shown on the
+  // update card only, so the number a client sees never moves backwards
+  // because an update and the board disagreed.
   @Prop({ default: 0, min: 0, max: 100 })
   progress: number;
 

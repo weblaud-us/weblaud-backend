@@ -49,9 +49,9 @@ export class ProjectUpdate {
   @Prop({ enum: ProjectUpdateType, default: ProjectUpdateType.PROGRESS })
   type: ProjectUpdateType;
 
-  // Applied to ClientProject.progress only once this update is published
-  // (immediately for a PM post, on approval for a developer's) — see
-  // ClientProjectService.applyProgress.
+  // Narrative only — the author's "roughly where we are" estimate, shown on
+  // the update card. It never writes ClientProject.progress, which comes
+  // from the task board alone (TaskService.recomputeProgress).
   @Prop({ min: 0, max: 100 })
   progressValue?: number;
 

@@ -227,10 +227,10 @@ export class ClientProjectService {
   }
 
   /**
-   * Applied when a published update carries a progressValue — see
-   * ProjectUpdateService's publish/approve paths. A bare field write, not
-   * routed through update()/updateForPortalUser(), since it's an internal
-   * side effect of an update being published rather than a user-initiated
+   * The task board's recomputed progress — TaskService.recomputeProgress is
+   * the only caller, and the only writer of project.progress. A bare field
+   * write, not routed through update()/updateForPortalUser(), since it's an
+   * internal side effect of a task change rather than a user-initiated
    * project edit (no notification/audit entry of its own).
    */
   async applyProgress(id: string, progress: number): Promise<void> {
