@@ -1,0 +1,26 @@
+# Throwaway services for testing on your own machine — never used in
+# production. Start with `pnpm local:up`, stop with `pnpm local:down`
+# (add `-v` to wipe the data). See weblaud-site/LOCAL_TESTING.md.
+services:
+  mongo:
+    image: mongo:7
+    container_name: weblaud-local-mongo
+    ports:
+      - "127.0.0.1:27018:27017"
+    volumes:
+      - weblaud-local-mongo:/data/db
+
+  # Catches every email the backend sends (invites, digests, invoices…) so
+  # nothing reaches a real inbox. Read them at http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: weblaud-local-mailpit
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+
+volumes:
+  weblaud-local-mongo:

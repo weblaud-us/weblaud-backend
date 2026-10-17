@@ -15,7 +15,11 @@ import { scrubSentryEvent } from './common/utils/sentry-scrub.util';
 
 function fromDotEnv(key: string): string | undefined {
   try {
-    const text = readFileSync(join(process.cwd(), '.env'), 'utf8');
+    // Same file app.module.ts loads (.env.local under scripts/local.js).
+    const text = readFileSync(
+      join(process.cwd(), process.env.ENV_FILE || '.env'),
+      'utf8',
+    );
     const line = text
       .split(/\r?\n/)
       .find((l) => l.trim().startsWith(`${key}=`));

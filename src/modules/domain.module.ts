@@ -39,6 +39,7 @@ import { FileModule } from './file/file.module';
 import { CommentModule } from './comment/comment.module';
 import { TimeEntryModule } from './time-entry/time-entry.module';
 import { DigestModule } from './digest/digest.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 @Module({
   imports: [
@@ -111,6 +112,7 @@ import { DigestModule } from './digest/digest.module';
     CommentModule,
     TimeEntryModule,
     DigestModule,
+    MonitoringModule,
   ],
 })
 export class DomainModule {}

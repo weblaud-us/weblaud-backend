@@ -98,3 +98,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Headless Chrome / Lighthouse crash-reporter noise
 debug.log
+
+# Local testing (scripts/local.js, .env.local)
+uploads-local/

@@ -17,7 +17,9 @@ import { AppService } from './app.service';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [envConfig],
-      envFilePath: '.env',
+      // ENV_FILE=.env.local is set only by scripts/local.js, for testing
+      // against throwaway local services. Production always reads .env.
+      envFilePath: process.env.ENV_FILE || '.env',
       // Refuses to boot on missing, placeholder or contradictory config
       // rather than failing later at request time. See env.validation.ts.
       validate: validateEnv,
