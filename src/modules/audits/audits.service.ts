@@ -326,6 +326,11 @@ export class AuditsService {
     };
   }
 
+  async findOneForAdmin(id: string) {
+    const audit = await this.findOrThrow(id);
+    return audit;
+  }
+
   async markRead(id: string) {
     const updated = await this.auditModel.findOneAndUpdate(
       { _id: id, ...CLAIMED },

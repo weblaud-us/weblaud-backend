@@ -76,7 +76,10 @@ export class UsersService {
 
     const count = await this.userModel.countDocuments(query);
 
-    return { data, total: count, page, limit };
+    // Not `data`: ResponseInterceptor unwraps `data.data` when present, so a
+    // `data` key here would collapse this whole envelope down to just the
+    // user array and silently drop total/page/limit.
+    return { items: data, total: count, page, limit };
   }
 
   async findOne(id: string) {

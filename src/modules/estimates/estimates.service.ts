@@ -224,6 +224,12 @@ export class EstimatesService {
     };
   }
 
+  async findOneForAdmin(id: string) {
+    const estimate = await this.estimateModel.findById(id).lean();
+    if (!estimate) throw new NotFoundException('Estimate not found');
+    return estimate;
+  }
+
   async markRead(id: string) {
     const updated = await this.estimateModel.findByIdAndUpdate(
       id,

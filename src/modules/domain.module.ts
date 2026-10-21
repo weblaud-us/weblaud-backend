@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { DatabaseModule } from './database/database.module';
+// DatabaseModule is @Global() in app.module.ts — importing it here would be
+// redundant (or create a second connection pool if @Global were ever removed).
 import { UploadModule } from '@weblaud/upload-pro';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailModule } from './mail/mail.module';
@@ -45,13 +46,14 @@ import { MonitoringModule } from './monitoring/monitoring.module';
   imports: [
     AuthModule,
     UsersModule,
-    DatabaseModule,
     SeedModule,
     UploadModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const fileStorage = config.get('FILE_STORAGE');
+        const fileStorage = config.get<'s3' | 'cloudinary' | undefined>(
+          'FILE_STORAGE',
+        );
         const driver =
           fileStorage === 's3' || fileStorage === 'cloudinary'
             ? fileStorage
@@ -60,7 +62,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
         return {
           driver,
           maxSize: config.get('FILE_MAX_SIZE') || '10mb',
-          allowedTypes: config.get('FILE_ALLOWED_TYPES')?.split(','),
+          allowedTypes: config.get<string>('FILE_ALLOWED_TYPES')?.split(','),
           localConfig: {
             destination: config.get('LOCAL_UPLOAD_PATH') || './uploads',
           },

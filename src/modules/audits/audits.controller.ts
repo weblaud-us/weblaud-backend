@@ -40,6 +40,13 @@ export class AuditsController {
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
+  @Get('admin/:id')
+  getOneAdmin(@Param('id') id: string) {
+    return this.auditsService.findOneForAdmin(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Patch('admin/:id/read')
   markRead(@Param('id') id: string) {
     return this.auditsService.markRead(id);

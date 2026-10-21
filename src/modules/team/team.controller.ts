@@ -46,6 +46,13 @@ export class TeamController {
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
+  @Get(':id')
+  getOne(@Param('id') id: string) {
+    return this.service.findById(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Post()
   @UseInterceptors(FileInterceptor('avatar'))
   async create(

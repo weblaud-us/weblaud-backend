@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuditLog, AuditLogDocument } from './schemas/audit-log.schema';
@@ -42,6 +42,18 @@ export class AuditLogService {
       .sort({ at: -1 })
       .populate('actor', 'firstName lastName email role')
       .lean();
+  }
+
+  /** Single entry for the admin detail view — full meta, ip, populated actor. */
+  async findOne(id: string) {
+    const entry = await this.model
+      .findById(id)
+      .populate('actor', 'firstName lastName email role')
+      .lean();
+    if (!entry) {
+      throw new NotFoundException('Audit entry not found');
+    }
+    return entry;
   }
 
   async findRecent(limit = 100) {

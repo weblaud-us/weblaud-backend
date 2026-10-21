@@ -39,6 +39,14 @@ export class TestimonialsController {
     return this.service.findAllAdmin(page, limit);
   }
 
+  // ADMIN — single item
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get(':id')
+  getOne(@Param('id') id: string) {
+    return this.service.findOneForAdmin(id);
+  }
+
   // ADMIN — create
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)

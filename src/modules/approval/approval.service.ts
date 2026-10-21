@@ -126,6 +126,24 @@ export class ApprovalService {
       .lean();
   }
 
+  /** Single approval for the admin detail view (AdminApprovalController). */
+  async findOneForAdmin(id: string) {
+    const approval = await this.model
+      .findById(id)
+      .populate({
+        path: 'project',
+        select: 'name organization',
+        populate: { path: 'organization', select: 'name' },
+      })
+      .populate('requestedBy', 'firstName lastName')
+      .populate('decidedBy', 'firstName lastName')
+      .lean();
+    if (!approval) {
+      throw new NotFoundException('Approval not found');
+    }
+    return approval;
+  }
+
   private async findAccessible(
     id: string,
     actor: Actor,

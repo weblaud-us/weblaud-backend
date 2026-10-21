@@ -15,6 +15,11 @@ export class AuditLogController {
     return this.service.findRecent(limit ? Number(limit) : undefined);
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(id);
+  }
+
   @Get(':entityType/:entityId')
   findForEntity(
     @Param('entityType') entityType: string,

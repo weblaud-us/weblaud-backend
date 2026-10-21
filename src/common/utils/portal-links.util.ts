@@ -12,6 +12,7 @@ export type PortalProjectSection =
   | 'timeline'
   | 'updates'
   | 'discussion'
+  | 'activity'
   | 'files'
   | 'approvals'
   | 'changes'
@@ -30,10 +31,11 @@ const SECTION_PATHS: Record<PortalProjectSection, string> = {
   tasks: '/work/tasks',
   timeline: '/work/timeline',
   updates: '/updates',
-  discussion: '/updates/discussion',
+  discussion: '/discussion',
+  activity: '/activity',
   files: '/files',
   approvals: '/decisions/approvals',
-  changes: '/decisions/changes',
+  changes: '/decisions/change-requests',
   questions: '/decisions/questions',
   invoices: '/billing/invoices',
   contract: '/billing/contract',

@@ -50,6 +50,13 @@ export class ContactController {
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
+  @Get('admin/:id')
+  getOneAdmin(@Param('id') id: string) {
+    return this.contactService.findOneForAdmin(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Patch('admin/:id/pipeline')
   updatePipeline(@Param('id') id: string, @Body() dto: UpdateLeadPipelineDto) {
     return this.contactService.updatePipeline(id, dto);

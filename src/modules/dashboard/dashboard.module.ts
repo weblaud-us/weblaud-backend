@@ -19,6 +19,18 @@ import {
   Invoice,
   InvoiceSchema,
 } from 'src/modules/invoice/schemas/invoice.schema';
+import {
+  Comment,
+  CommentSchema,
+} from 'src/modules/comment/schemas/comment.schema';
+import {
+  Contract,
+  ContractSchema,
+} from 'src/modules/contract/schemas/contract.schema';
+import {
+  ChangeRequest,
+  ChangeRequestSchema,
+} from 'src/modules/change-request/schemas/change-request.schema';
 import { ContractModule } from 'src/modules/contract/contract.module';
 import { ApprovalModule } from 'src/modules/approval/approval.module';
 import { InvoiceModule } from 'src/modules/invoice/invoice.module';
@@ -30,12 +42,15 @@ import { ClientProjectModule } from 'src/modules/client-project/client-project.m
 
 @Module({
   imports: [
-    // Read-only, for ProjectActivityService's recent-activity merge.
+    // Read-only models for ProjectActivityService's recent-activity merge.
     MongooseModule.forFeature([
       { name: ProjectUpdate.name, schema: ProjectUpdateSchema },
       { name: ProjectFile.name, schema: ProjectFileSchema },
       { name: Approval.name, schema: ApprovalSchema },
       { name: Invoice.name, schema: InvoiceSchema },
+      { name: Comment.name, schema: CommentSchema },
+      { name: Contract.name, schema: ContractSchema },
+      { name: ChangeRequest.name, schema: ChangeRequestSchema },
     ]),
     ContractModule,
     ApprovalModule,

@@ -243,6 +243,24 @@ export class ChangeRequestService {
       .lean();
   }
 
+  /** Single change request for the admin detail view (AdminChangeRequestController). */
+  async findOneForAdmin(id: string) {
+    const changeRequest = await this.model
+      .findById(id)
+      .populate({
+        path: 'project',
+        select: 'name organization',
+        populate: { path: 'organization', select: 'name' },
+      })
+      .populate('requestedBy', 'firstName lastName')
+      .populate('approvedBy', 'firstName lastName')
+      .lean();
+    if (!changeRequest) {
+      throw new NotFoundException('Change request not found');
+    }
+    return changeRequest;
+  }
+
   private async findAccessible(
     id: string,
     actor: Actor,

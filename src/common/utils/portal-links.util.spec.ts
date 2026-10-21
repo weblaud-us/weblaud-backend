@@ -3,11 +3,12 @@ import { portalProjectLink, projectIdFromLink } from './portal-links.util';
 const ID = '507f1f77bcf86cd799439011';
 
 describe('portalProjectLink', () => {
-  it('builds the six-tab paths the site routes', () => {
+  it('builds the tab paths the site routes', () => {
     expect(portalProjectLink(ID, 'overview')).toBe(`/portal/projects/${ID}`);
     expect(portalProjectLink(ID, 'tasks')).toBe(`/portal/projects/${ID}/work/tasks`);
-    expect(portalProjectLink(ID, 'discussion')).toBe(`/portal/projects/${ID}/updates/discussion`);
-    expect(portalProjectLink(ID, 'changes')).toBe(`/portal/projects/${ID}/decisions/changes`);
+    expect(portalProjectLink(ID, 'discussion')).toBe(`/portal/projects/${ID}/discussion`);
+    expect(portalProjectLink(ID, 'activity')).toBe(`/portal/projects/${ID}/activity`);
+    expect(portalProjectLink(ID, 'changes')).toBe(`/portal/projects/${ID}/decisions/change-requests`);
     expect(portalProjectLink(ID, 'questions')).toBe(`/portal/projects/${ID}/decisions/questions`);
     expect(portalProjectLink(ID, 'invoices')).toBe(`/portal/projects/${ID}/billing/invoices`);
     expect(portalProjectLink(ID, 'contract')).toBe(`/portal/projects/${ID}/billing/contract`);

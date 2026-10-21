@@ -46,6 +46,12 @@ export class FaqService {
     };
   }
 
+  async findOneForAdmin(id: string) {
+    const faq = await this.faqModel.findById(id).lean();
+    if (!faq) throw new NotFoundException('FAQ not found');
+    return faq;
+  }
+
   async update(id: string, dto: UpdateFaqDto) {
     const updated = await this.faqModel.findByIdAndUpdate(id, dto, {
       new: true,

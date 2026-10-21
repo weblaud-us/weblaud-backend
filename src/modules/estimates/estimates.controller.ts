@@ -46,6 +46,13 @@ export class EstimatesController {
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
+  @Get('admin/:id')
+  getOneAdmin(@Param('id') id: string) {
+    return this.estimatesService.findOneForAdmin(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Patch('admin/:id/pipeline')
   updatePipeline(@Param('id') id: string, @Body() dto: UpdateLeadPipelineDto) {
     return this.estimatesService.updatePipeline(id, dto);

@@ -46,6 +46,12 @@ export class TestimonialsService {
     };
   }
 
+  async findOneForAdmin(id: string) {
+    const testimonial = await this.testimonialModel.findById(id).lean();
+    if (!testimonial) throw new NotFoundException('Testimonial not found');
+    return testimonial;
+  }
+
   async update(id: string, dto: UpdateTestimonialDto) {
     const updated = await this.testimonialModel.findByIdAndUpdate(id, dto, {
       new: true,

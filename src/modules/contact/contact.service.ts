@@ -180,6 +180,12 @@ export class ContactService {
     };
   }
 
+  async findOneForAdmin(id: string) {
+    const contact = await this.contactModel.findById(id).lean();
+    if (!contact) throw new NotFoundException('Message not found');
+    return contact;
+  }
+
   async markRead(id: string) {
     const updated = await this.contactModel.findByIdAndUpdate(
       id,
