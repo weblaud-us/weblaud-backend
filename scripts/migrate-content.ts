@@ -4,9 +4,12 @@
  * MongoDB + Cloudinary, through the real backend modules/UploadService.
  *
  * Run manually (never on app boot): `npm run migrate:content`
- * Safe to re-run — collections with a natural key (project/insights) upsert
- * by slug; collections without one (services/team/testimonials/faq) skip
- * entirely if already populated, so admin edits are never clobbered.
+ * Safe to re-run — projects and insights insert only slugs that don't exist
+ * yet; collections without a natural key (services/team/testimonials/faq)
+ * skip entirely if already populated, so admin edits are never clobbered.
+ * The singleton steps (about, contact-info, calculator-config) still
+ * overwrite; see requestedSteps(). Do not use this to update published
+ * content — the seed copy predates the 2026-10-25 publication audit.
  */
 import 'reflect-metadata';
 import * as fs from 'fs';
@@ -789,16 +792,20 @@ async function seedServices(model: Model<any>, uploadService: UploadService) {
   logger.log(`services: inserted ${SERVICES_SEED.length}`);
 }
 
+/**
+ * Insert-only. Existing records are left alone: the 2026-10-25 publication
+ * audit (scripts/migrate-publication.ts) rewrote or unpublished every one of
+ * these, and re-upserting this seed would restore the unverified outcome
+ * claims below over the reviewed copy. New inserts carry no
+ * `publicationStatus`, so they read as drafts until published in the CMS.
+ */
 async function seedProjects(model: Model<any>, uploadService: UploadService) {
   let count = 0;
   for (const p of PROJECTS_SEED) {
-    const existing = await model.findOne({ slug: p.slug });
-    let coverImage = existing?.coverImage ?? '';
-    if (!coverImage) {
-      coverImage = p.imageUrl
-        ? await uploadRemoteAsset(uploadService, p.imageUrl, `${p.slug}.jpg`, 'projects')
-        : await uploadAsset(uploadService, p.imageAsset!, 'projects');
-    }
+    if (await model.exists({ slug: p.slug })) continue;
+    const coverImage = p.imageUrl
+      ? await uploadRemoteAsset(uploadService, p.imageUrl, `${p.slug}.jpg`, 'projects')
+      : await uploadAsset(uploadService, p.imageAsset!, 'projects');
 
     await model.findOneAndUpdate(
       { slug: p.slug },
@@ -818,7 +825,7 @@ async function seedProjects(model: Model<any>, uploadService: UploadService) {
     );
     count += 1;
   }
-  logger.log(`projects: upserted ${count}`);
+  logger.log(`projects: inserted ${count} (existing slugs left unchanged)`);
 }
 
 async function seedTeam(model: Model<any>, uploadService: UploadService) {

@@ -101,3 +101,7 @@ debug.log
 
 # Local testing (scripts/local.js, .env.local)
 uploads-local/
+
+# Migration plans and rollback data (scripts/migrate-publication.ts). Archive
+# them with the release record; they are CMS dumps, not source.
+scripts/output/
