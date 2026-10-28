@@ -22,9 +22,24 @@ describe('CreateContactDto', () => {
 
   it('accepts known budget and timeline values', async () => {
     await expect(
-      errorsFor({ ...VALID, budget: '20k_plus', timeline: 'asap' }),
+      errorsFor({ ...VALID, budget: '25k_50k', timeline: 'asap' }),
     ).resolves.toEqual([]);
   });
+
+  it.each(['under_10k', '10k_25k', '25k_50k', '50k_plus', 'not_sure'])(
+    'accepts the current budget band %s',
+    async (budget) => {
+      await expect(errorsFor({ ...VALID, budget })).resolves.toEqual([]);
+    },
+  );
+
+  // A page cached before the band change can still post the old values.
+  it.each(['under_5k', '5k_10k', '10k_20k', '20k_plus'])(
+    'still accepts the legacy budget band %s',
+    async (budget) => {
+      await expect(errorsFor({ ...VALID, budget })).resolves.toEqual([]);
+    },
+  );
 
   it('rejects budget and timeline values outside the published lists', async () => {
     await expect(

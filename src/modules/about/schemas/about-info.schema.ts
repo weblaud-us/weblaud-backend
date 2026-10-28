@@ -34,6 +34,13 @@ export class AboutInfo {
     title: string; // e.g. "12+"
     subtitle: string; // e.g. "Years in Development"
     description?: string; // optional longer copy shown under the subtitle
+    /**
+     * Public only once someone has checked the figure against evidence.
+     * Entries saved before this existed have no value and stay hidden.
+     */
+    publicationApproved?: boolean;
+    /** Internal: the source of the figure and who approved it. Never public. */
+    evidenceNote?: string;
   }[];
 }
 

@@ -37,22 +37,39 @@ export class ProjectController {
     return this.projectService.create(dto, req.user.id, files);
   }
 
+  // Public reads return published (illustrative/verified) records only, with
+  // internal evidence notes stripped. Drafts 404.
   @Public()
   @Get()
   findAll() {
-    return this.projectService.findAll();
+    return this.projectService.findAllPublic();
+  }
+
+  // Declared before `:id` so "admin" is never read as a project id.
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('admin')
+  findAllAdmin() {
+    return this.projectService.findAllAdmin();
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('admin/:id')
+  findOneAdmin(@Param('id') id: string) {
+    return this.projectService.findOneAdmin(id);
   }
 
   @Public()
   @Get('slug/:slug')
   findBySlug(@Param('slug') slug: string) {
-    return this.projectService.findBySlug(slug);
+    return this.projectService.findPublicBySlug(slug);
   }
 
   @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.projectService.findOne(id);
+    return this.projectService.findPublicById(id);
   }
 
   @UseGuards(RolesGuard)

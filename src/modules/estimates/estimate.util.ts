@@ -49,10 +49,12 @@ export interface EstimateResult {
 }
 
 /**
- * Delivery window mirrored from weblaud-site/app/lib/constants.ts TIMELINE,
- * which is the single source of truth for every public timeline claim.
+ * Shortest timeline an estimate shows, mirrored from
+ * weblaud-site/app/lib/constants.ts TIMELINE.minWeeks. There is deliberately
+ * no maximum: a cap silently compressed complex scope into a timeline we never
+ * agreed to, so larger selections now show their full indicative length.
  */
-export const TIMELINE_BOUNDS = { min: 4, max: 14 } as const;
+export const TIMELINE_BOUNDS = { min: 4 } as const;
 
 const DEFAULT_RANGE_SPREAD_PCT = 0.28;
 const DEFAULT_ROUND_TO_NEAREST = 500;
@@ -86,9 +88,9 @@ export function estimateProject(
 
   const rawWeeks =
     (projectType?.weeks ?? 0) + featureWeeks + (speed?.weeksOffset ?? 0);
-  const totalWeeks = Math.min(
-    TIMELINE_BOUNDS.max,
-    Math.max(TIMELINE_BOUNDS.min, Math.round(rawWeeks * 10) / 10),
+  const totalWeeks = Math.max(
+    TIMELINE_BOUNDS.min,
+    Math.round(rawWeeks * 10) / 10,
   );
 
   const increment = config.roundToNearest ?? DEFAULT_ROUND_TO_NEAREST;

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import {
-  BUDGET_OPTIONS,
+  ACCEPTED_BUDGET_OPTIONS,
   HEARD_ABOUT_OPTIONS,
   LEAD_STAGES,
   TIMELINE_OPTIONS,
@@ -33,7 +33,7 @@ export class Contact {
 
   // --- Optional qualifiers (visitor-supplied; see leads/lead.constants.ts) ---
 
-  @Prop({ enum: BUDGET_OPTIONS })
+  @Prop({ enum: ACCEPTED_BUDGET_OPTIONS })
   budget?: string;
 
   @Prop({ enum: TIMELINE_OPTIONS })

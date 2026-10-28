@@ -1,5 +1,15 @@
-import { IsArray, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { ToStringArray } from 'src/common/decorators/multipart.decorators';
+import {
+  PUBLICATION_STATUSES,
+  type PublicationStatus,
+} from '../schema/project.schema';
 
 /**
  * Posted as multipart/form-data — cover and detail images are file uploads —
@@ -46,4 +56,13 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString()
   businessImpact?: string;
+
+  @IsOptional()
+  @IsIn(PUBLICATION_STATUSES)
+  publicationStatus?: PublicationStatus;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  evidenceNotes?: string;
 }

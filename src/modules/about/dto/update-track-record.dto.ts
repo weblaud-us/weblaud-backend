@@ -1,4 +1,11 @@
-import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class TrackRecordItem {
@@ -11,6 +18,15 @@ class TrackRecordItem {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  publicationApproved?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  evidenceNote?: string;
 }
 
 export class UpdateTrackRecordDto {

@@ -236,6 +236,16 @@ describe('ContactService', () => {
       );
     });
 
+    it('labels a current budget band in the alert', async () => {
+      await service.submit({ ...VALID_DTO, budget: '50k_plus' });
+
+      expect(notified().rows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ label: 'Budget', value: '$50k+' }),
+        ]),
+      );
+    });
+
     it('passes empty qualifier rows (dropped by the notifier) when not given', async () => {
       await service.submit(VALID_DTO);
 

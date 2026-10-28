@@ -10,7 +10,7 @@ import {
 import { Type } from 'class-transformer';
 import { LeadAttributionDto } from '../../leads/dto/lead-attribution.dto';
 import {
-  BUDGET_OPTIONS,
+  ACCEPTED_BUDGET_OPTIONS,
   HEARD_ABOUT_OPTIONS,
   TIMELINE_OPTIONS,
 } from '../../leads/lead.constants';
@@ -52,7 +52,7 @@ export class CreateContactDto {
   heardAbout?: string;
 
   @IsOptional()
-  @IsIn(BUDGET_OPTIONS)
+  @IsIn(ACCEPTED_BUDGET_OPTIONS)
   budget?: string;
 
   @IsOptional()

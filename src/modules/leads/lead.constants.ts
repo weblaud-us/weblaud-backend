@@ -39,25 +39,50 @@ export const HEARD_ABOUT_OPTIONS = [
 export type HeardAbout = (typeof HEARD_ABOUT_OPTIONS)[number];
 
 /**
- * Optional qualifiers on the contact form, so an admin can tell a $20k build
- * from a tyre-kicker before replying. Values must match BUDGET_OPTIONS /
- * TIMELINE_OPTIONS in the site's app/lib/leads.ts — the API rejects anything
- * else. The bands start at our minimum sprint fee ($4,500).
+ * Optional qualifiers on the contact form, so an admin can size an inquiry
+ * before replying. Values must match BUDGET_OPTIONS / TIMELINE_OPTIONS in the
+ * site's app/lib/leads.ts. These bands describe the buyer's budget; they are
+ * not our prices.
  */
 export const BUDGET_OPTIONS = [
+  'under_10k',
+  '10k_25k',
+  '25k_50k',
+  '50k_plus',
+  'not_sure',
+] as const;
+
+/**
+ * Bands the form offered before 2026-10-25. No longer offered, but still
+ * accepted (a page cached before the release can still submit them) and
+ * always displayed with their original label — a stored `10k_20k` is never
+ * reinterpreted as one of the current bands.
+ */
+export const LEGACY_BUDGET_OPTIONS = [
   'under_5k',
   '5k_10k',
   '10k_20k',
   '20k_plus',
-  'not_sure',
 ] as const;
 
-export const BUDGET_LABELS: Record<(typeof BUDGET_OPTIONS)[number], string> = {
+/** Everything validation and the schema accept: current plus legacy. */
+export const ACCEPTED_BUDGET_OPTIONS = [
+  ...BUDGET_OPTIONS,
+  ...LEGACY_BUDGET_OPTIONS,
+] as const;
+
+export type BudgetBand = (typeof ACCEPTED_BUDGET_OPTIONS)[number];
+
+export const BUDGET_LABELS: Record<BudgetBand, string> = {
+  under_10k: 'Under $10k',
+  '10k_25k': '$10k – $25k',
+  '25k_50k': '$25k – $50k',
+  '50k_plus': '$50k+',
+  not_sure: 'Not sure yet',
   under_5k: 'Under $5k',
   '5k_10k': '$5k – $10k',
   '10k_20k': '$10k – $20k',
   '20k_plus': '$20k+',
-  not_sure: 'Not sure yet',
 };
 
 export const TIMELINE_OPTIONS = [

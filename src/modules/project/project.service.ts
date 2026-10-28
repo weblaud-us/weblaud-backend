@@ -8,7 +8,11 @@ import { Model, Types } from 'mongoose';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { UploadService } from '@weblaud/upload-pro';
-import { Project, ProjectDocument } from './schema/project.schema';
+import {
+  Project,
+  ProjectDocument,
+  PUBLISHED_STATUSES,
+} from './schema/project.schema';
 import { slugify } from 'src/common/utils/slugify.util';
 
 @Injectable()
@@ -40,6 +44,31 @@ export class ProjectService {
     return candidate;
   }
 
+  /**
+   * Public reads: published records only, without internal notes. A record
+   * with no `publicationStatus` (written before the field existed) does not
+   * match, so it stays a draft until someone in the CMS publishes it.
+   */
+  private static readonly PUBLIC_FILTER = {
+    publicationStatus: { $in: PUBLISHED_STATUSES },
+  };
+  private static readonly PUBLIC_PROJECTION = '-evidenceNotes';
+
+  /**
+   * A verified case study is a claim about delivered client work, so it needs
+   * a written record of its evidence and publication permission first.
+   */
+  private assertPublishable(
+    status: string | undefined,
+    evidenceNotes: string | undefined,
+  ) {
+    if (status === 'verified' && !evidenceNotes?.trim()) {
+      throw new BadRequestException(
+        'A verified case study needs evidence notes recording its source and publication permission',
+      );
+    }
+  }
+
   async create(
     dto: CreateProjectDto,
     userId: string,
@@ -56,6 +85,7 @@ export class ProjectService {
       ? await Promise.all(files.details.map((f) => this.uploadFile(f)))
       : [];
 
+    this.assertPublishable(dto.publicationStatus, dto.evidenceNotes);
     const slug = await this.generateUniqueSlug(dto.slug ?? dto.name);
 
     return this.projectModel.create({
@@ -67,18 +97,46 @@ export class ProjectService {
     });
   }
 
-  async findAll() {
-    return this.projectModel.find().sort({ createdAt: -1 });
+  async findAllPublic() {
+    return this.projectModel
+      .find(ProjectService.PUBLIC_FILTER)
+      .select(ProjectService.PUBLIC_PROJECTION)
+      .sort({ createdAt: -1 })
+      .lean();
   }
 
-  async findOne(id: string) {
-    const project = await this.projectModel.findById(id);
+  /** Drafts 404 exactly like a missing slug, so their existence isn't leaked. */
+  async findPublicBySlug(slug: string) {
+    const project = await this.projectModel
+      .findOne({ slug, ...ProjectService.PUBLIC_FILTER })
+      .select(ProjectService.PUBLIC_PROJECTION)
+      .lean();
     if (!project) throw new NotFoundException('Project not found');
     return project;
   }
 
-  async findBySlug(slug: string) {
-    const project = await this.projectModel.findOne({ slug }).lean();
+  async findPublicById(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Project not found');
+    }
+    const project = await this.projectModel
+      .findOne({ _id: id, ...ProjectService.PUBLIC_FILTER })
+      .select(ProjectService.PUBLIC_PROJECTION)
+      .lean();
+    if (!project) throw new NotFoundException('Project not found');
+    return project;
+  }
+
+  /** Every record, drafts and internal notes included — for the CMS. */
+  async findAllAdmin() {
+    return this.projectModel.find().sort({ createdAt: -1 }).lean();
+  }
+
+  async findOneAdmin(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Project not found');
+    }
+    const project = await this.projectModel.findById(id);
     if (!project) throw new NotFoundException('Project not found');
     return project;
   }
@@ -92,7 +150,11 @@ export class ProjectService {
       details?: Express.Multer.File[];
     },
   ) {
-    const project = await this.findOne(id);
+    const project = await this.findOneAdmin(id);
+    this.assertPublishable(
+      dto.publicationStatus ?? project.publicationStatus,
+      dto.evidenceNotes ?? project.evidenceNotes,
+    );
 
     // ---------- COVER ----------
     let coverImage = project.coverImage;
@@ -134,7 +196,7 @@ export class ProjectService {
   }
 
   async delete(id: string) {
-    const project = await this.findOne(id);
+    const project = await this.findOneAdmin(id);
 
     if (project.coverImage) await this.deleteFile(project.coverImage);
 

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Testimonial, TestimonialDocument } from './schemas/testimonial.schema';
@@ -12,13 +16,28 @@ export class TestimonialsService {
     private readonly testimonialModel: Model<TestimonialDocument>,
   ) {}
 
+  /**
+   * Approval asserts the quote is genuine and the author agreed to publish it,
+   * so it needs a written record of who confirmed that.
+   */
+  private assertApprovable(approved?: boolean, evidenceNote?: string) {
+    if (approved && !evidenceNote?.trim()) {
+      throw new BadRequestException(
+        'Record the evidence and publication permission before approving this testimonial',
+      );
+    }
+  }
+
   async create(dto: CreateTestimonialDto) {
+    this.assertApprovable(dto.publicationApproved, dto.evidenceNote);
     return await this.testimonialModel.create(dto);
   }
 
+  /** Approved, active quotes only — without the internal evidence note. */
   async findAllPublic() {
     return await this.testimonialModel
-      .find({ isActive: true })
+      .find({ isActive: true, publicationApproved: true })
+      .select('-evidenceNote')
       .sort({ createdAt: -1 })
       .lean();
   }
@@ -53,6 +72,17 @@ export class TestimonialsService {
   }
 
   async update(id: string, dto: UpdateTestimonialDto) {
+    if (
+      dto.publicationApproved !== undefined ||
+      dto.evidenceNote !== undefined
+    ) {
+      const current = await this.testimonialModel.findById(id).lean();
+      if (!current) throw new NotFoundException('Testimonial not found');
+      this.assertApprovable(
+        dto.publicationApproved ?? current.publicationApproved,
+        dto.evidenceNote ?? current.evidenceNote,
+      );
+    }
     const updated = await this.testimonialModel.findByIdAndUpdate(id, dto, {
       new: true,
     });
