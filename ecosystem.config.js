@@ -5,8 +5,9 @@ module.exports = {
       script: "dist/main.js",
       // .env is loaded relative to the working directory, so this must be
       // pinned — starting PM2 from anywhere else silently skips the file and
-      // the app fails env validation at boot.
-      cwd: "/var/www/weblaud-backend",
+      // the app fails env validation at boot. __dirname is this config's
+      // own directory, so the checkout can live at any path on the server.
+      cwd: __dirname,
       instances: 1,
       exec_mode: "fork",
       watch: false,
