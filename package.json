@@ -5,6 +5,16 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@sentry/cli",
+      "bcrypt"
+    ],
+    "ignoredBuiltDependencies": [
+      "@parcel/watcher",
+      "unrs-resolver"
+    ]
+  },
   "scripts": {
     "build": "nest build && node scripts/upload-sourcemaps.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
