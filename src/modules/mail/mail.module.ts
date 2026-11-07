@@ -30,6 +30,28 @@ import * as nodemailer from 'nodemailer';
           port,
           secure: port === 465, // true for 465, false for other ports
           auth: { user, pass },
+
+          // Without `pool`, nodemailer opens a fresh TCP connection and runs a
+          // full TLS handshake + AUTH for every single message. Against Gmail
+          // that is ~1-3s of pure setup per mail, which is the bulk of the
+          // delay an admin feels when inviting someone. Pooling keeps a small
+          // number of authenticated connections warm and reuses them.
+          pool: true,
+          // Gmail is not generous with concurrent connections; 3 is enough to
+          // overlap a burst (e.g. inviting several people) without tripping
+          // its limits. maxMessages recycles a connection periodically so a
+          // long-lived socket going stale can't wedge the pool.
+          maxConnections: 3,
+          maxMessages: 50,
+
+          // Every one of these is unbounded-ish by default (connection 2min,
+          // greeting 30s, socket 10min), so a single unresponsive SMTP server
+          // could hang a request for minutes. These cap the worst case at a
+          // few seconds, which matters now that sends are also retried by
+          // hand rather than blocking the caller.
+          connectionTimeout: 10_000,
+          greetingTimeout: 10_000,
+          socketTimeout: 20_000,
         });
 
         // Verified for the log line only — deliberately not awaited and never

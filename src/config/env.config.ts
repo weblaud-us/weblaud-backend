@@ -127,6 +127,24 @@ export const envConfig = () => ({
      * guard lets requests through and logs a warning.
      */
     secretKey: process.env.TURNSTILE_SECRET_KEY,
+
+    /**
+     * Hostnames a Turnstile token may have been minted on, comma-separated
+     * (TURNSTILE_HOSTNAMES=weblaud.com,www.weblaud.com). Cloudflare reports
+     * the page's hostname on verification, so checking it stops a token
+     * farmed from a widget embedded on an attacker's own page.
+     *
+     * Optional, and an empty list SKIPS the check rather than rejecting
+     * everything. Cloudflare's own guidance is to fail closed here, but every
+     * public form on the site runs through this guard: failing closed on an
+     * unset variable would turn a forgotten line in .env into a total forms
+     * outage, which is the same trap that `secretKey` above is deliberately
+     * lenient about. The guard warns once per process while it is unset.
+     */
+    hostnames: (process.env.TURNSTILE_HOSTNAMES ?? '')
+      .split(',')
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean),
   },
 
   sentry: {

@@ -29,6 +29,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Role } from 'src/common/enum/user.role.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CaptchaGuard } from 'src/common/guards/captcha.guard';
+import { CaptchaAction } from 'src/common/decorators/captcha-action.decorator';
 
 const RESUME_TYPES = ['pdf', 'doc', 'docx'];
 const RESUME_MAX_BYTES = 5 * 1024 * 1024;
@@ -117,6 +118,7 @@ export class CareerController {
   // interceptors), so a failed bot check uploads nothing.
   @Public()
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @CaptchaAction('job-application')
   @UseGuards(CaptchaGuard)
   @Post(':id/apply')
   @UseInterceptors(

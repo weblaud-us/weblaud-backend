@@ -18,6 +18,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/user.role.enum';
 import { CaptchaGuard } from 'src/common/guards/captcha.guard';
+import { CaptchaAction } from 'src/common/decorators/captcha-action.decorator';
 import { UpdateLeadPipelineDto } from '../leads/dto/update-lead-pipeline.dto';
 
 @Controller('audits')
@@ -72,6 +73,7 @@ export class AuditsController {
   // tight per-IP limit.
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @CaptchaAction('audit-run')
   @UseGuards(CaptchaGuard)
   @Post('run')
   run(@Body() dto: RunAuditDto) {
@@ -90,6 +92,7 @@ export class AuditsController {
   // the contact form.
   @Public()
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @CaptchaAction('audit-claim')
   @UseGuards(CaptchaGuard)
   @Post(':id/claim')
   claim(@Param('id') id: string, @Body() dto: ClaimAuditDto) {

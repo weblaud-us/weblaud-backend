@@ -18,6 +18,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/user.role.enum';
 import { CaptchaGuard } from 'src/common/guards/captcha.guard';
+import { CaptchaAction } from 'src/common/decorators/captcha-action.decorator';
 import { UpdateLeadPipelineDto } from '../leads/dto/update-lead-pipeline.dto';
 
 @Controller('contact')
@@ -30,6 +31,7 @@ export class ContactController {
   // rules in ContactService.submit catch what gets past it.
   @Public()
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @CaptchaAction('contact')
   @UseGuards(CaptchaGuard)
   @Post('submit')
   submit(@Body() dto: CreateContactDto) {

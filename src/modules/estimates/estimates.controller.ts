@@ -17,6 +17,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/user.role.enum';
 import { CaptchaGuard } from 'src/common/guards/captcha.guard';
+import { CaptchaAction } from 'src/common/decorators/captcha-action.decorator';
 import { UpdateLeadPipelineDto } from '../leads/dto/update-lead-pipeline.dto';
 
 @Controller('estimates')
@@ -26,6 +27,7 @@ export class EstimatesController {
   // Tighter than the global ThrottlerGuard default — this is a public write.
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @CaptchaAction('estimate')
   @UseGuards(CaptchaGuard)
   @Post('submit')
   submit(@Body() dto: CreateEstimateDto) {

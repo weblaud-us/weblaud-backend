@@ -206,6 +206,50 @@ export class UsersService {
    * changing their own forgotten password.
    */
   async adminUpdate(id: string, dto: UpdateUserDto, actorId: string) {
+    // Email is an identity change, not an ordinary field edit: it decides
+    // where the invite lands and what the person eventually logs in with.
+    // It's handled here rather than in update(), which AuthService's
+    // self-service password reset also goes through and which must never
+    // start re-issuing invites.
+    let reissueInvite = false;
+
+    if (dto.email !== undefined) {
+      const current = await this.userModel.findById(id);
+      if (!current) throw new NotFoundException('User not found');
+
+      // Addresses are compared and stored normalized; without this a typo
+      // fix that only changes case looks like a real change, and two rows
+      // differing only in case slip past the unique index.
+      const email = dto.email.trim().toLowerCase();
+
+      if (email !== current.email) {
+        // Pending invites only. Once an account is active this address is
+        // the login identity, and changing it from an admin screen would
+        // lock the person out of a portal they are already using.
+        if (current.isActive) {
+          throw new BadRequestException(
+            'This account has already been activated — its email can no longer be changed here',
+          );
+        }
+
+        // Pre-checked so a collision is a 409 with a usable message, the way
+        // invite() already does it. Left to the unique index it surfaces as
+        // a raw Mongo E11000, which isn't an HttpException and so reaches the
+        // admin as an opaque 500.
+        const clash = await this.userModel.findOne({
+          email,
+          _id: { $ne: id },
+        });
+        if (clash) {
+          throw new ConflictException('A user with this email already exists');
+        }
+
+        reissueInvite = true;
+      }
+
+      dto.email = email;
+    }
+
     const updated = await this.update(id, dto);
     if (!updated) throw new NotFoundException('User not found');
     await this.auditLog.record({
@@ -215,9 +259,22 @@ export class UsersService {
       entityId: id,
       // Field names only, never values — role/org changes are worth an
       // audit trail, but a changed password must never be reconstructable
-      // from one, hashed or not.
-      meta: { fields: Object.keys(dto) },
+      // from one, hashed or not. The corrected address is the exception:
+      // user.invite already records an email, and "which inbox did this
+      // invite actually go to" is the whole point of the audit here.
+      meta: {
+        fields: Object.keys(dto),
+        ...(reissueInvite ? { emailChangedTo: updated.email } : {}),
+      },
     });
+
+    // After the write, so the fresh token is mailed to the corrected address.
+    // issueInvite always mints a new token, which also invalidates the link
+    // already sitting in the wrong inbox.
+    if (reissueInvite) {
+      await this.issueInvite(updated);
+    }
+
     return updated;
   }
 
@@ -541,7 +598,13 @@ export class UsersService {
       ? `${portalBase}/accept-invite?uid=${user._id}&token=${rawToken}`
       : '#';
 
-    await this.mail.sendInviteEmail({
+    // Deliberately not awaited. The token above is already persisted, so the
+    // invite is valid the moment this returns; holding the HTTP response open
+    // for a full SMTP round trip (~1-3s against Gmail) only made the admin UI
+    // feel broken. A failed send is logged by MailService with its timing and
+    // is recoverable from the UI via "Resend invite" — it no longer 500s a
+    // request whose user row was already created.
+    this.mail.sendInviteEmailInBackground({
       to: user.email,
       firstName: user.firstName,
       acceptUrl,
