@@ -11,11 +11,14 @@ import { format } from 'fast-csv';
 import { Model, Types } from 'mongoose';
 import { UploadService } from '@weblaud/upload-pro';
 import { DashboardNotifierService } from '../mail/dashboard-notifier.service';
+import { MailService } from '../mail/mail.service';
+import { greetingName } from '../leads/lead-reply.service';
 import { Career } from './schemas/career.schema';
 import { Application } from './schemas/application.schema';
 import { CreateCareerDto } from './dto/create-career.dto';
 import { UpdateCareerDto } from './dto/update-career.dto';
 import { SubmitApplicationDto } from './dto/submit-application.dto';
+import { SendApplicantEmailDto } from './dto/send-applicant-email.dto';
 import { sanitizeCsvRow } from 'src/common/utils/csv.util';
 import { slugify } from 'src/common/utils/slugify.util';
 import { readStoredFile } from 'src/common/utils/stored-file-streamer.util';
@@ -53,6 +56,27 @@ function sniffDocumentType(
   return undefined;
 }
 
+/**
+ * "Fri, Nov 14, 2026, 5:00 PM GMT+6" in the sender's zone. An unknown zone
+ * string (it comes from the browser) falls back to UTC instead of throwing.
+ */
+export function formatDue(date: Date, timeZone?: string): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  };
+  try {
+    return date.toLocaleString('en-US', { ...opts, timeZone: timeZone || 'UTC' });
+  } catch {
+    return date.toLocaleString('en-US', { ...opts, timeZone: 'UTC' });
+  }
+}
+
 function extensionOf(filename?: string): string | undefined {
   const match = filename?.match(/\.([a-z0-9]{1,5})$/i);
   return match?.[1].toLowerCase();
@@ -68,6 +92,7 @@ export class CareerService {
     private readonly uploadService: UploadService,
     private readonly dashboardNotifier: DashboardNotifierService,
     private readonly config: ConfigService,
+    private readonly mail: MailService,
   ) {}
 
   // ---------- Helper to fix url/path union ----------
@@ -393,6 +418,73 @@ export class CareerService {
     await app.save();
 
     return { message: 'Status updated', status };
+  }
+
+  /**
+   * Emails the applicant from the admin (assignment, interview invite,
+   * rejection...) and records it on the application. Unlike the lead
+   * auto-replies this awaits the send and lets a failure throw: an admin who
+   * clicked Send needs to know the task never left, and nothing is recorded
+   * unless it did. Replies go to the HR inbox, not MAIL_FROM's no-reply.
+   */
+  async emailApplicant(
+    id: string,
+    dto: SendApplicantEmailDto,
+    actorId?: string,
+  ) {
+    const app = await this.appModel
+      .findById(id)
+      .populate<{ careerId: { title?: string } | null }>('careerId', 'title');
+    if (!app) throw new NotFoundException('Applicant not found');
+
+    const dueAt = dto.dueAt ? new Date(dto.dueAt) : undefined;
+    const paragraphs = dto.message
+      .replace(/\r\n/g, '\n')
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => p.split('\n'));
+
+    try {
+      await this.mail.sendEmail({
+        to: app.email,
+        subject: dto.subject,
+        template: 'applicant-message',
+        context: {
+          name: greetingName(app.name),
+          role: app.careerId?.title,
+          paragraphs,
+          taskUrl: dto.taskUrl,
+          dueLabel: dueAt ? formatDue(dueAt, dto.timeZone) : undefined,
+        },
+        replyTo: this.config.get<string>('mail.hr'),
+      });
+    } catch (err) {
+      this.logger.error(
+        `Email to applicant ${id} failed`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      throw new InternalServerErrorException(
+        'The email could not be sent. Nothing was recorded — try again.',
+      );
+    }
+
+    app.emails.push({
+      subject: dto.subject,
+      message: dto.message,
+      taskUrl: dto.taskUrl,
+      dueAt,
+      sentAt: new Date(),
+      sentBy: actorId ? new Types.ObjectId(actorId) : undefined,
+    });
+    if (dto.setStatus) app.status = dto.setStatus;
+    await app.save();
+
+    return {
+      message: 'Email sent',
+      status: app.status,
+      emails: app.emails,
+    };
   }
 
   //Helper

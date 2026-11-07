@@ -24,6 +24,8 @@ import { CareerService } from './career.service';
 import { CreateCareerDto } from './dto/create-career.dto';
 import { UpdateCareerDto } from './dto/update-career.dto';
 import { SubmitApplicationDto } from './dto/submit-application.dto';
+import { SendApplicantEmailDto } from './dto/send-applicant-email.dto';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Role } from 'src/common/enum/user.role.enum';
@@ -197,5 +199,19 @@ export class CareerController {
   @Patch('admin/applicants/:id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.service.updateStatus(id, status);
+  }
+
+  // Throttled so a stuck double-click (or a scripted loop) can't spam an
+  // applicant's inbox from our domain.
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('admin/applicants/:id/email')
+  emailApplicant(
+    @Param('id') id: string,
+    @Body() dto: SendApplicantEmailDto,
+    @GetUser() user: { _id?: { toString(): string } } | undefined,
+  ) {
+    return this.service.emailApplicant(id, dto, user?._id?.toString());
   }
 }

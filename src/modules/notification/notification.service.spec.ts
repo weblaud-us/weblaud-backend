@@ -14,6 +14,7 @@ import { NotificationService } from './notification.service';
 import { Notification } from './schemas/notification.schema';
 import { MailService } from 'src/modules/mail/mail.service';
 import { UsersService } from 'src/modules/users/users.service';
+import { PushService } from 'src/modules/push/push.service';
 
 describe('NotificationService — email channel (Phase 5)', () => {
   let service: NotificationService;
@@ -21,6 +22,7 @@ describe('NotificationService — email channel (Phase 5)', () => {
   let mail: { sendEmail: jest.Mock };
   let users: { findOne: jest.Mock };
   let config: { get: jest.Mock };
+  let push: { sendToUser: jest.Mock };
 
   beforeEach(async () => {
     model = {
@@ -29,6 +31,7 @@ describe('NotificationService — email channel (Phase 5)', () => {
     };
     mail = { sendEmail: jest.fn().mockResolvedValue(undefined) };
     users = { findOne: jest.fn() };
+    push = { sendToUser: jest.fn().mockResolvedValue(undefined) };
     config = {
       get: jest.fn((key: string) => {
         if (key === 'mail.unsubscribeSecret') return 'a'.repeat(32);
@@ -44,10 +47,28 @@ describe('NotificationService — email channel (Phase 5)', () => {
         { provide: MailService, useValue: mail },
         { provide: UsersService, useValue: users },
         { provide: ConfigService, useValue: config },
+        { provide: PushService, useValue: push },
       ],
     }).compile();
 
     service = module.get(NotificationService);
+  });
+
+  it('pushes the notification to the user devices', async () => {
+    users.findOne.mockResolvedValue(null);
+    await service.notify({
+      user: 'u1',
+      type: 'invoice_sent',
+      title: 'Invoice INV-7',
+      body: 'Due Nov 30',
+      link: '/portal/billing',
+    });
+    expect(push.sendToUser).toHaveBeenCalledWith('u1', {
+      title: 'Invoice INV-7',
+      body: 'Due Nov 30',
+      link: '/portal/billing',
+      tag: 'invoice_sent:/portal/billing',
+    });
   });
 
   it('always writes the in-app row, with or without an email option', async () => {

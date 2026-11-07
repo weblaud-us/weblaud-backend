@@ -8,6 +8,7 @@ import {
 } from './schemas/notification.schema';
 import { MailService } from 'src/modules/mail/mail.service';
 import { UsersService } from 'src/modules/users/users.service';
+import { PushService } from 'src/modules/push/push.service';
 import { signUnsubscribeToken } from 'src/common/utils/email-preference-token.util';
 import { siteUrl } from 'src/common/utils/site-url.util';
 
@@ -52,6 +53,7 @@ export class NotificationService {
     private readonly mail: MailService,
     private readonly users: UsersService,
     private readonly config: ConfigService,
+    private readonly push: PushService,
   ) {}
 
   /**
@@ -72,6 +74,16 @@ export class NotificationService {
         err instanceof Error ? err.stack : String(err),
       );
     }
+
+    // Phone/desktop push for every device the user turned it on for. Never
+    // rejects, and is a no-op without VAPID keys or subscriptions.
+    await this.push.sendToUser(input.user, {
+      title: input.title,
+      body: input.body,
+      link: input.link,
+      // Same event about the same page replaces itself; different ones stack.
+      tag: input.link ? `${input.type}:${input.link}` : input.type,
+    });
 
     if (email) {
       await this.dispatchEmail(input.user, email, input.link);

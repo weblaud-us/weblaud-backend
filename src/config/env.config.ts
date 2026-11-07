@@ -79,6 +79,21 @@ export const envConfig = () => ({
     apiKey: process.env.PAGESPEED_API_KEY,
   },
 
+  push: {
+    /**
+     * Web Push (VAPID) keys for portal push notifications — generate once with
+     * `npx web-push generate-vapid-keys`. All optional: unset means push is
+     * off and the portal hides the toggle; in-app and email notifications are
+     * unaffected. Never rotate the pair casually — every existing browser
+     * subscription is bound to the public key and would silently stop.
+     */
+    vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
+    vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
+    vapidSubject:
+      process.env.VAPID_SUBJECT ||
+      (process.env.MAIL_ADMIN ? `mailto:${process.env.MAIL_ADMIN}` : undefined),
+  },
+
   invite: {
     /** How long an invite acceptance link stays valid. */
     tokenTtlHours: parseInt(process.env.INVITE_TOKEN_TTL_HOURS || '72', 10),

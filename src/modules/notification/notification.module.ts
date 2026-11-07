@@ -8,6 +8,7 @@ import {
 } from './schemas/notification.schema';
 import { MailModule } from 'src/modules/mail/mail.module';
 import { UsersModule } from 'src/modules/users/users.module';
+import { PushModule } from 'src/modules/push/push.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UsersModule } from 'src/modules/users/users.module';
     ]),
     MailModule,
     UsersModule,
+    PushModule,
   ],
   controllers: [NotificationController],
   providers: [NotificationService],

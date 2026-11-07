@@ -6,6 +6,7 @@ import { CareerService } from './career.service';
 import { Career } from './schemas/career.schema';
 import { Application } from './schemas/application.schema';
 import { DashboardNotifierService } from '../mail/dashboard-notifier.service';
+import { MailService } from '../mail/mail.service';
 
 const DTO = {
   name: 'Ada Lovelace',
@@ -79,6 +80,7 @@ describe('CareerService — application notifications', () => {
           },
         },
         { provide: DashboardNotifierService, useValue: notifier },
+        { provide: MailService, useValue: { sendEmail: jest.fn() } },
         {
           provide: ConfigService,
           useValue: { get: jest.fn().mockReturnValue('hr@example.com') },
@@ -152,5 +154,112 @@ describe('CareerService — application notifications', () => {
     expect(appModel.create.mock.invocationCallOrder[0]).toBeLessThan(
       notifier.notifyNew.mock.invocationCallOrder[0],
     );
+  });
+});
+
+describe('CareerService — emailing an applicant', () => {
+  let service: CareerService;
+  let mail: { sendEmail: jest.Mock };
+  let app: {
+    email: string;
+    name: string;
+    status: string;
+    careerId: { title: string };
+    emails: object[];
+    save: jest.Mock;
+  };
+
+  const ACTOR = '507f1f77bcf86cd799439022';
+  const sent = () =>
+    mail.sendEmail.mock.calls[0][0] as {
+      to: string;
+      subject: string;
+      template: string;
+      replyTo?: string;
+      context: Record<string, unknown>;
+    };
+
+  beforeEach(async () => {
+    app = {
+      email: 'ada@example.com',
+      name: 'Ada Lovelace',
+      status: 'new',
+      careerId: { title: 'Backend Engineer' },
+      emails: [],
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    mail = { sendEmail: jest.fn().mockResolvedValue(undefined) };
+    const appModel = {
+      findById: jest
+        .fn()
+        .mockReturnValue({ populate: jest.fn().mockResolvedValue(app) }),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CareerService,
+        { provide: getModelToken(Career.name), useValue: {} },
+        { provide: getModelToken(Application.name), useValue: appModel },
+        { provide: UploadService, useValue: {} },
+        { provide: DashboardNotifierService, useValue: {} },
+        { provide: MailService, useValue: mail },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockReturnValue('hr@example.com') },
+        },
+      ],
+    }).compile();
+
+    service = module.get(CareerService);
+  });
+
+  it('sends the task with a reply-to on the HR inbox and records it', async () => {
+    await service.emailApplicant(
+      'app1',
+      {
+        subject: 'Your design task',
+        message: 'Hello there.\n\nPlease do this.\nThanks!',
+        taskUrl: 'https://docs.example.com/task',
+        dueAt: '2026-11-14T11:00:00.000Z',
+        timeZone: 'Asia/Dhaka',
+        setStatus: 'review',
+      },
+      ACTOR,
+    );
+
+    expect(sent()).toEqual(
+      expect.objectContaining({
+        to: 'ada@example.com',
+        subject: 'Your design task',
+        template: 'applicant-message',
+        replyTo: 'hr@example.com',
+      }),
+    );
+    expect(sent().context).toEqual(
+      expect.objectContaining({
+        name: 'Ada',
+        role: 'Backend Engineer',
+        paragraphs: [['Hello there.'], ['Please do this.', 'Thanks!']],
+        taskUrl: 'https://docs.example.com/task',
+      }),
+    );
+    // 11:00 UTC is 5:00 PM in Dhaka (UTC+6).
+    expect(sent().context.dueLabel).toMatch(/5:00\sPM/);
+    expect(app.emails).toHaveLength(1);
+    expect(app.emails[0]).toEqual(
+      expect.objectContaining({ subject: 'Your design task' }),
+    );
+    expect(app.status).toBe('review');
+    expect(app.save).toHaveBeenCalled();
+  });
+
+  it('records nothing and reports an error when the send fails', async () => {
+    mail.sendEmail.mockRejectedValueOnce(new Error('SMTP down'));
+
+    await expect(
+      service.emailApplicant('app1', { subject: 'Hi', message: 'Hello' }),
+    ).rejects.toThrow(/could not be sent/);
+    expect(app.emails).toHaveLength(0);
+    expect(app.save).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,29 @@ import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 export type ApplicationDocument = Application & Document;
 
+@Schema({ _id: true })
+export class ApplicantEmail {
+  @Prop({ required: true })
+  subject: string;
+
+  @Prop({ required: true })
+  message: string;
+
+  @Prop()
+  taskUrl?: string;
+
+  @Prop()
+  dueAt?: Date;
+
+  @Prop({ required: true, default: () => new Date() })
+  sentAt: Date;
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
+  sentBy?: Types.ObjectId;
+}
+
+export const ApplicantEmailSchema = SchemaFactory.createForClass(ApplicantEmail);
+
 @Schema({ timestamps: true })
 export class Application {
   // Must be Schema.Types.ObjectId, not Types.ObjectId. The latter is the value
@@ -47,6 +70,12 @@ export class Application {
     default: 'new',
   })
   status: string;
+
+  // Every email sent to the applicant from the admin (task, interview invite,
+  // rejection...), oldest first — the detail page lists them so nobody sends
+  // the same assignment twice.
+  @Prop({ type: [ApplicantEmailSchema], default: [] })
+  emails: ApplicantEmail[];
 }
 
 export const ApplicationSchema = SchemaFactory.createForClass(Application);
